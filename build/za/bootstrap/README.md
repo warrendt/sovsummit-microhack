@@ -31,34 +31,42 @@ are deterministic from `(subscriptionId, namePrefix)`.
   quota in `southafricanorth`. Request it now if you don't
   have it — approval can take 24h.
 
-## Run it
+## Two modes
 
-### bash / zsh
+### Engineer mode (default)
+Single subscription, you become Key Vault Admin. Best for one-off testing
+or following the challenges yourself.
 
 ```bash
-chmod +x build-za.sh
-./build-za.sh                     # interactive
-./build-za.sh --subscription <id> # explicit sub
-./build-za.sh --what-if           # preview only
+./build-za.sh
+pwsh ./build-za.ps1
 ```
 
-### PowerShell
+### Coach mode (`--coach` / `-Coach`)
+Adds the upstream multi-attendee prep before deploying the foundation:
 
-```powershell
-./build-za.ps1
-./build-za.ps1 -SubscriptionId <guid>
-./build-za.ps1 -WhatIf
+1. **`2-vcpu-quotas.ps1`** — checks vCPU quota in
+   `southafricanorth` against what `--attendees N` will need
+   (ArcBox, LocalBox, Confidential VM DCasv5/DCadsv5). Add
+   `--submit-quota-requests` to file requests via the Azure Quota REST API.
+2. **`3-rbac.ps1`** — creates the custom `Deployment Validator` role and
+   assigns it (plus `Security Reader` and `Resource Policy Contributor`) to
+   the `LabUsers` Entra group (override with `--lab-users-group`).
+3. **`4-resource-groups.ps1`** — creates `N` numbered attendee resource
+   groups (`labuser-01`, `labuser-02`, …) and assigns Owner to each lab
+   user.
+
+```bash
+./build-za.sh --coach --attendees 30
+./build-za.sh --coach --lab-users-group LabUsers --attendees 30 --submit-quota-requests
+pwsh ./build-za.ps1 -Coach -Attendees 30
 ```
 
-Both wrappers:
-
-1. Verify the az CLI is installed and Bicep is available.
-2. Make sure you're signed in (`az login --use-device-code` if not).
-3. Register the resource providers the hack relies on (parallel, idempotent).
-4. Capture your signed-in user object ID and pass it as
-   `adminObjectId` so you become Key Vault Administrator on day 1.
-5. Run `az deployment sub create` with `main.bicep` + `main.bicepparam`.
-6. Print the deployment outputs (RG, Key Vault, storage, policy IDs).
+Coach mode requires `pwsh` (PowerShell 7+) plus the `Az.Accounts`,
+`Az.Resources` and `Microsoft.Graph.Groups` modules so the upstream
+PS scripts can run. Coach mode also expects you to have **Owner +
+User Access Administrator** at the subscription scope and an existing
+Entra ID group containing the attendees.
 
 ## Deployment outputs
 

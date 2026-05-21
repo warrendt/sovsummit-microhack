@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 # build-za.sh — one-shot bootstrap for the ${country.summit_edition} workshop.
 #
-# What it does:
+# Two modes:
+#   * Default (engineer)  : stand up the sovereign foundation for a single
+#                           engineer's subscription (you become Key Vault Admin).
+#   * --coach             : ALSO run the multi-attendee prep scripts before the
+#                           Bicep deployment — quota check, custom RBAC role
+#                           for the LabUsers group, and N per-attendee resource
+#                           groups. Use this when preparing a shared
+#                           subscription that 5-60 attendees will share at
+#                           the summit.
+#
+# What it does (engineer mode):
 #   1. Verifies az CLI + Bicep are available.
 #   2. Confirms you are logged in to the right subscription.
 #   3. Registers the resource providers the hack relies on.
@@ -9,16 +19,36 @@
 #   5. Prints the resource group, Key Vault, storage account and policy
 #      assignment so you can jump straight into Challenge 1.
 #
+# What --coach adds (in this order, before step 4 above):
+#   2-vcpu-quotas.ps1   - check current vCPU quota in ${country.azure.primary_region}
+#                         and (if --submit-quota-requests) submit increase requests
+#   3-rbac.ps1          - create the 'Deployment Validator' custom role and assign
+#                         it (plus Security Reader + Resource Policy Contributor)
+#                         to the configured LabUsers Entra group
+#   4-resource-groups.ps1 - create N numbered resource groups (labuser-01 ...)
+#                         and assign Owner to each lab user
+#
 # Usage:
-#   ./build-za.sh                          # interactive
-#   ./build-za.sh --subscription <id>      # set target subscription
-#   ./build-za.sh --name-prefix sov2026    # override the 6-char prefix
-#   ./build-za.sh --what-if                # preview only, no changes
+#   ./build-za.sh                                # engineer mode, interactive
+#   ./build-za.sh --subscription <id>            # set target subscription
+#   ./build-za.sh --name-prefix sov2026          # override the 6-char prefix
+#   ./build-za.sh --what-if                      # preview only, no changes
+#   ./build-za.sh --coach --attendees 30         # coach mode for 30 attendees
+#   ./build-za.sh --coach --lab-users-group LabUsers --attendees 30
+#   ./build-za.sh --coach --submit-quota-requests
+#
+# Requirements for --coach:
+#   - pwsh (PowerShell 7+) on PATH
+#   - Az.Accounts, Az.Resources, Microsoft.Graph.Groups PowerShell modules
+#   - An existing Entra ID group (default: 'LabUsers') containing the attendees
+#   - Owner + User Access Administrator at the subscription scope
 #
 # Cleanup:
 #   az group delete -n rg-<prefix>-foundation --yes --no-wait
 #   az policy assignment delete --name <prefix>-allowed-locations
 #   az policy assignment delete --name <prefix>-allowed-rg-locations
+#   # If you ran --coach also delete the labuser-NN groups, custom role, and
+#   # group role assignments (the prep scripts print their names on creation).
 
 set -euo pipefail
 
@@ -27,12 +57,23 @@ NAME_PREFIX="sovza"
 WHAT_IF=""
 LOCATION="${country.azure.primary_region}"
 
+COACH=0
+LAB_USERS_GROUP="LabUsers"
+ATTENDEES=10
+RG_PREFIX="labuser-"
+SUBMIT_QUOTA=0
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --subscription) SUBSCRIPTION="$2"; shift 2 ;;
     --name-prefix)  NAME_PREFIX="$2";  shift 2 ;;
     --location)     LOCATION="$2";     shift 2 ;;
     --what-if)      WHAT_IF="--what-if"; shift ;;
+    --coach)              COACH=1; shift ;;
+    --lab-users-group)    LAB_USERS_GROUP="$2"; shift 2 ;;
+    --attendees)          ATTENDEES="$2"; shift 2 ;;
+    --rg-prefix)          RG_PREFIX="$2"; shift 2 ;;
+    --submit-quota-requests) SUBMIT_QUOTA=1; shift ;;
     -h|--help)
       grep '^#' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
@@ -42,6 +83,9 @@ done
 
 command -v az >/dev/null || { echo "az CLI not found. Install: https://learn.microsoft.com/cli/azure/install-azure-cli"; exit 1; }
 az bicep version >/dev/null 2>&1 || az bicep install >/dev/null
+if [[ $COACH -eq 1 ]]; then
+  command -v pwsh >/dev/null || { echo "pwsh (PowerShell 7+) is required for --coach mode."; exit 1; }
+fi
 
 if ! az account show >/dev/null 2>&1; then
   echo "Not logged in. Running 'az login'..."
@@ -53,16 +97,23 @@ if [[ -n "$SUBSCRIPTION" ]]; then
 fi
 SUB_ID="$(az account show --query id -o tsv)"
 SUB_NAME="$(az account show --query name -o tsv)"
+SUB_OBJ_NAME="$SUB_NAME"
 SIGNED_IN_OID="$(az ad signed-in-user show --query id -o tsv)"
 
 echo
+echo "==> Mode         : $([[ $COACH -eq 1 ]] && echo 'coach (multi-attendee)' || echo 'engineer (single subscription)')"
 echo "==> Subscription : $SUB_NAME ($SUB_ID)"
 echo "==> Region       : $LOCATION"
 echo "==> Prefix       : $NAME_PREFIX"
 echo "==> Admin OID    : $SIGNED_IN_OID"
+if [[ $COACH -eq 1 ]]; then
+  echo "==> Group        : $LAB_USERS_GROUP"
+  echo "==> Attendees    : $ATTENDEES (resource groups: ${RG_PREFIX}01 .. ${RG_PREFIX}$(printf '%02d' $ATTENDEES))"
+  echo "==> Submit quota : $([[ $SUBMIT_QUOTA -eq 1 ]] && echo yes || echo 'no (check only)')"
+fi
 echo
 
-read -r -p "Proceed with the deployment? [y/N] " confirm
+read -r -p "Proceed? [y/N] " confirm
 [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
 
 echo
@@ -84,8 +135,43 @@ done
 wait
 echo "    providers registered."
 
-DEPLOY_NAME="${NAME_PREFIX}-bootstrap-$(date +%Y%m%d-%H%M%S)"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Walk back up to the rendered bundle root so we can find the upstream prep
+# scripts. In the rendered tree that's: <bundle>/bootstrap/.. == <bundle>/
+BUNDLE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PREP_DIR="$BUNDLE_ROOT/resources/subscription-preparations"
+
+if [[ $COACH -eq 1 ]]; then
+  if [[ ! -d "$PREP_DIR" ]]; then
+    echo "ERROR: expected coach prep scripts at $PREP_DIR but did not find them." >&2
+    echo "       Make sure you are running build-za.sh from a rendered build/za/bootstrap/ folder." >&2
+    exit 1
+  fi
+
+  echo
+  echo "==> [coach] 2-vcpu-quotas.ps1 — checking vCPU quota in $LOCATION for $ATTENDEES attendees..."
+  QUOTA_ARGS=(-Region "$LOCATION" -NumberOfLabUsers "$ATTENDEES")
+  [[ $SUBMIT_QUOTA -eq 1 ]] && QUOTA_ARGS+=(-SubmitQuotaRequests)
+  pwsh -NoLogo -NonInteractive -File "$PREP_DIR/2-vcpu-quotas.ps1" "${QUOTA_ARGS[@]}" || {
+    echo "    quota check returned a non-zero exit code (often expected if a request was filed); continuing."
+  }
+
+  echo
+  echo "==> [coach] 3-rbac.ps1 — custom 'Deployment Validator' role + group RBAC for '$LAB_USERS_GROUP'..."
+  pwsh -NoLogo -NonInteractive -File "$PREP_DIR/3-rbac.ps1" \
+    -GroupName "$LAB_USERS_GROUP" -SubscriptionId "$SUB_ID"
+
+  echo
+  echo "==> [coach] 4-resource-groups.ps1 — creating $ATTENDEES attendee resource groups in $LOCATION..."
+  pwsh -NoLogo -NonInteractive -File "$PREP_DIR/4-resource-groups.ps1" \
+    -SubscriptionName "$SUB_OBJ_NAME" \
+    -Location "$LOCATION" \
+    -ResourceGroupPrefix "$RG_PREFIX" \
+    -ResourceGroupCount "$ATTENDEES" \
+    -StartIndex 1
+fi
+
+DEPLOY_NAME="${NAME_PREFIX}-bootstrap-$(date +%Y%m%d-%H%M%S)"
 
 echo
 echo "==> Deploying main.bicep at subscription scope (${WHAT_IF:-real})..."

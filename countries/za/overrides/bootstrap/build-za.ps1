@@ -3,11 +3,24 @@
     One-shot bootstrap for the ${country.summit_edition} workshop.
 
 .DESCRIPTION
-    Registers required resource providers and deploys main.bicep at
-    subscription scope into ${country.azure.primary_region}, producing the
-    foundation resource group + Premium Key Vault (HSM-backed) + CMK key +
-    storage account + Log Analytics workspace, plus the Allowed-Locations
-    policy assignments that pin everything to ${country.name} regions.
+    Two modes:
+      * Default (engineer) — stand up the sovereign foundation for a single
+        engineer's subscription (you become Key Vault Admin).
+      * -Coach            — ALSO run the multi-attendee prep scripts before
+        the Bicep deployment: quota check, custom 'Deployment Validator' RBAC
+        role for the LabUsers group, and N per-attendee resource groups.
+
+    Engineer mode steps:
+      1. Verify az CLI + Bicep.
+      2. Make sure you are signed in to the right subscription.
+      3. Register the resource providers the hack relies on.
+      4. Deploy main.bicep at subscription scope into the primary region.
+      5. Print outputs.
+
+    Coach mode adds, before step 4:
+      * 2-vcpu-quotas.ps1    (region quota check / optional submit)
+      * 3-rbac.ps1           (custom Deployment Validator role + group RBAC)
+      * 4-resource-groups.ps1 (numbered attendee RGs + Owner)
 
 .PARAMETER SubscriptionId
     Target subscription. Defaults to the currently selected one.
@@ -21,10 +34,29 @@
 .PARAMETER WhatIf
     Preview the deployment without applying changes.
 
+.PARAMETER Coach
+    Switch into coach mode and run the per-summit prep scripts before the
+    Bicep deployment.
+
+.PARAMETER LabUsersGroup
+    Entra ID group name receiving the lab RBAC. Defaults to 'LabUsers'.
+
+.PARAMETER Attendees
+    Number of attendees / numbered resource groups to create. Defaults to 10.
+
+.PARAMETER ResourceGroupPrefix
+    Prefix for attendee resource groups. Defaults to 'labuser-'.
+
+.PARAMETER SubmitQuotaRequests
+    Also submit vCPU quota increase requests via the Azure Quota REST API
+    when running the quota check.
+
 .EXAMPLE
     ./build-za.ps1
     ./build-za.ps1 -SubscriptionId <guid> -NamePrefix sov2026
     ./build-za.ps1 -WhatIf
+    ./build-za.ps1 -Coach -Attendees 30
+    ./build-za.ps1 -Coach -LabUsersGroup LabUsers -Attendees 30 -SubmitQuotaRequests
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]
@@ -32,7 +64,13 @@ param(
     [string]$SubscriptionId,
     [ValidatePattern('^[a-z]{2,6}$')]
     [string]$NamePrefix = 'sovza',
-    [string]$Location   = '${country.azure.primary_region}'
+    [string]$Location   = '${country.azure.primary_region}',
+
+    [switch]$Coach,
+    [string]$LabUsersGroup = 'LabUsers',
+    [int]$Attendees = 10,
+    [string]$ResourceGroupPrefix = 'labuser-',
+    [switch]$SubmitQuotaRequests
 )
 
 $ErrorActionPreference = 'Stop'
@@ -57,10 +95,16 @@ $ctx = az account show -o json | ConvertFrom-Json
 $signedInOid = az ad signed-in-user show --query id -o tsv
 
 Write-Host ""
+Write-Host "==> Mode         : $((if ($Coach) { 'coach (multi-attendee)' } else { 'engineer (single subscription)' }))"
 Write-Host "==> Subscription : $($ctx.name) ($($ctx.id))"
 Write-Host "==> Region       : $Location"
 Write-Host "==> Prefix       : $NamePrefix"
 Write-Host "==> Admin OID    : $signedInOid"
+if ($Coach) {
+    Write-Host "==> Group        : $LabUsersGroup"
+    Write-Host "==> Attendees    : $Attendees (RGs: $($ResourceGroupPrefix)01 .. $('{0}{1:D2}' -f $ResourceGroupPrefix,$Attendees))"
+    Write-Host "==> Submit quota : $($SubmitQuotaRequests.IsPresent)"
+}
 Write-Host ""
 
 if (-not $PSCmdlet.ShouldProcess("Sovereignty Summit ${country.iso2} foundation", "deploy")) {
@@ -68,7 +112,7 @@ if (-not $PSCmdlet.ShouldProcess("Sovereignty Summit ${country.iso2} foundation"
     return
 }
 
-$confirm = Read-Host "Proceed with the deployment? [y/N]"
+$confirm = Read-Host "Proceed? [y/N]"
 if ($confirm -notmatch '^(y|Y)') { Write-Host "Aborted."; return }
 
 Write-Host ""
@@ -90,8 +134,37 @@ $jobs | Wait-Job | Out-Null
 $jobs | Remove-Job
 Write-Host "    providers registered."
 
-$deployName = "$NamePrefix-bootstrap-$(Get-Date -Format yyyyMMdd-HHmmss)"
 $scriptDir  = Split-Path -Parent $PSCommandPath
+$bundleRoot = Split-Path -Parent $scriptDir
+$prepDir    = Join-Path $bundleRoot 'resources/subscription-preparations'
+
+if ($Coach) {
+    if (-not (Test-Path $prepDir)) {
+        throw "Expected coach prep scripts at $prepDir but did not find them. Run this from a rendered build/za/bootstrap/ folder."
+    }
+
+    Write-Host ""
+    Write-Host "==> [coach] 2-vcpu-quotas.ps1 — checking vCPU quota in $Location for $Attendees attendees..." -ForegroundColor Cyan
+    $quotaArgs = @('-Region', $Location, '-NumberOfLabUsers', $Attendees)
+    if ($SubmitQuotaRequests) { $quotaArgs += '-SubmitQuotaRequests' }
+    try { & (Join-Path $prepDir '2-vcpu-quotas.ps1') @quotaArgs }
+    catch { Write-Warning "Quota check returned an error (often expected when a request is filed). Continuing." }
+
+    Write-Host ""
+    Write-Host "==> [coach] 3-rbac.ps1 — custom 'Deployment Validator' role + group RBAC for '$LabUsersGroup'..." -ForegroundColor Cyan
+    & (Join-Path $prepDir '3-rbac.ps1') -GroupName $LabUsersGroup -SubscriptionId $ctx.id
+
+    Write-Host ""
+    Write-Host "==> [coach] 4-resource-groups.ps1 — creating $Attendees attendee resource groups in $Location..." -ForegroundColor Cyan
+    & (Join-Path $prepDir '4-resource-groups.ps1') `
+        -SubscriptionName $ctx.name `
+        -Location $Location `
+        -ResourceGroupPrefix $ResourceGroupPrefix `
+        -ResourceGroupCount $Attendees `
+        -StartIndex 1
+}
+
+$deployName = "$NamePrefix-bootstrap-$(Get-Date -Format yyyyMMdd-HHmmss)"
 
 Write-Host ""
 Write-Host "==> Deploying main.bicep at subscription scope..." -ForegroundColor Cyan
