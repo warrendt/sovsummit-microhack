@@ -37,6 +37,12 @@ param adminObjectId string
 @description('Tag every resource with this attendee handle so cleanup is trivial.')
 param attendeeTag string = 'sovsummit-${country.iso2}'
 
+@description('Resource group resource IDs to exclude from residency policy (e.g. ArcBox/LocalBox in swedencentral).')
+param residencyExcludedScopes array = [
+  '${subscription().id}/resourceGroups/rg-arcbox'
+  '${subscription().id}/resourceGroups/rg-localbox'
+]
+
 var rgName = 'rg-${namePrefix}-foundation'
 var lawName = 'law-${namePrefix}-${uniqueString(subscription().id, namePrefix)}'
 var kvName  = 'kv-${namePrefix}-${uniqueString(subscription().id, namePrefix)}'
@@ -80,6 +86,7 @@ module residency 'modules/policy-residency.bicep' = {
       primaryLocation
       pairedLocation
     ]
+    excludedScopes: residencyExcludedScopes
   }
 }
 

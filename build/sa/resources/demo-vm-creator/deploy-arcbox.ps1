@@ -177,6 +177,9 @@ try {
         --template-uri $templateUri `
         --parameters $paramsFile `
         @waitFlag
+    if ($LASTEXITCODE -ne 0) {
+        throw "az deployment group create failed with exit code $LASTEXITCODE. See output above. Common causes: missing template params, RG blocked by residency policy (add rg-arcbox to notScopes), or quota."
+    }
 
     Write-Host "`n=== Deployment Initiated ===" -ForegroundColor Green
     if ($WaitAndDisableAutoShutdown) {

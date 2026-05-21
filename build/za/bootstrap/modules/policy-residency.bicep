@@ -8,6 +8,13 @@ targetScope = 'subscription'
 param namePrefix string
 param allowedLocations array
 
+// Resource group resource IDs to exclude from the residency policy. Used to
+// host demo-only artefacts (ArcBox, LocalBox) that legitimately deploy to a
+// region outside South Africa (e.g. swedencentral) because the upstream
+// Jumpstart templates require it. Residency enforcement still applies to
+// every other RG in the subscription.
+param excludedScopes array = []
+
 // 'Allowed locations' built-in policy definition ID
 var allowedLocationsPolicyId = '/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c'
 // 'Allowed locations for resource groups' built-in policy definition ID
@@ -20,6 +27,7 @@ resource locationsAssignment 'Microsoft.Authorization/policyAssignments@2023-04-
     description: 'Resources may only be deployed in South Africa regions to satisfy POPIA residency.'
     policyDefinitionId: allowedLocationsPolicyId
     enforcementMode: 'Default'
+    notScopes: excludedScopes
     parameters: {
       listOfAllowedLocations: {
         value: allowedLocations
@@ -35,6 +43,7 @@ resource rgLocationsAssignment 'Microsoft.Authorization/policyAssignments@2023-0
     description: 'Resource groups may only be created in South Africa regions.'
     policyDefinitionId: allowedRgLocationsPolicyId
     enforcementMode: 'Default'
+    notScopes: excludedScopes
     parameters: {
       listOfAllowedLocations: {
         value: allowedLocations

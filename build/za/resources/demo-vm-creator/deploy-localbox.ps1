@@ -253,6 +253,9 @@ try {
         --template-file $templateFile `
         --parameters $paramsFile `
         --no-wait
+    if ($LASTEXITCODE -ne 0) {
+        throw "az deployment group create failed with exit code $LASTEXITCODE. Common causes: missing template params, RG blocked by residency policy (add rg-localbox to notScopes), or quota."
+    }
 
     Write-Host "`n=== Deployment Initiated ===" -ForegroundColor Green
     Write-Host "The LocalBox deployment has been started in the background." -ForegroundColor Gray
