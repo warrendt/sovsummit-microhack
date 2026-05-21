@@ -108,13 +108,40 @@ After the script finishes you'll see:
 
 ## Cleanup
 
+For a quick one-off scratch sub:
+
 ```bash
 az group delete -n rg-<prefix>-foundation --yes --no-wait
 az policy assignment delete --name <prefix>-allowed-locations
 az policy assignment delete --name <prefix>-allowed-rg-locations
-# Optional: purge the soft-deleted Key Vault
+# Optional: purge the soft-deleted Key Vault (blocked while purge protection is on)
 az keyvault purge --name <kv-name> --location southafricanorth
 ```
+
+For a coach subscription that ran `--coach --create-users`, use the
+**teardown** script which mirrors the build flag surface and handles
+policy assignments, custom roles, attendee RGs, group role assignments,
+soft-deleted Key Vaults, and Entra users + groups:
+
+```bash
+# Dry-run summary first (no flag = preview):
+./teardown-za.sh --subscription <id> --attendees 30 --admin-user-count 5
+
+# Tear down everything except Entra users + soft-deleted KVs:
+./teardown-za.sh --apply --subscription <id> --attendees 30
+
+# Full teardown — also remove lab/admin users, groups, and try to purge KVs:
+./teardown-za.sh --apply --remove-users --purge-keyvault \
+                 --subscription <id> --attendees 30 --admin-user-count 5
+```
+
+Notes:
+- The sovereign foundation enables **Key Vault purge protection**, so
+  `--purge-keyvault` will fail until the retention window expires
+  (default 90 days). The soft-deleted vault will auto-purge after that.
+- `--remove-users` deletes `LabUser-01..NN` and `AdminLabUser-01..NN`
+  plus the `LabUsers`/`AdminUsers` groups in your **tenant**. Be sure
+  you ran with the same `--attendees`/`--admin-user-count` you bootstrapped with.
 
 ## Files
 
@@ -125,6 +152,7 @@ az keyvault purge --name <kv-name> --location southafricanorth
 | `modules/foundation.bicep` | RG-scoped: LAW, KV, identity, key, storage |
 | `modules/policy-residency.bicep` | Subscription-scope: allowed-locations assignments |
 | `build-za.sh` / `build-za.ps1` | One-shot wrappers |
+| `teardown-za.sh` | Idempotent cleanup mirror of `build-za.sh` |
 
 ## Sovereignty notes
 
