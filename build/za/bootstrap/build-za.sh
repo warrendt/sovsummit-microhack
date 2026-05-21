@@ -79,6 +79,25 @@ ADMIN_PASSWORD=""
 EVENT_START_DATE=""
 TAP_EXPORT_PATH=""
 
+# Microhack Sovereignty Summit security group + Conditional Access exclusion
+# (default ON whenever --coach is set; can be disabled per flag below)
+SUMMIT_GROUP="Microhack Sovereignty Summit"
+CREATE_SUMMIT_GROUP=1
+APPLY_CA_EXCLUSION=1
+CA_POLICY_NAME="Security info registration for Microsoft partners and vendors"
+
+# ArcBox + LocalBox demo environments for Challenge 5 & 6 (off by default —
+# they cost real money and take 30 min / 4-6 h to deploy).
+DEPLOY_ARCBOX=0
+DEPLOY_LOCALBOX=0
+ARCBOX_RG="rg-arcbox"
+LOCALBOX_RG="rg-localbox"
+ARCBOX_LOCATION="swedencentral"           # ArcBox upstream-supported region; do NOT change
+LOCALBOX_LOCATION="swedencentral"         # LocalBox host VM region
+AZURE_LOCAL_INSTANCE_LOCATION="westeurope"  # subject to LocalBox ValidateSet
+DEMO_ADMIN_USERNAME="arcdemo"
+DEMO_ADMIN_PASSWORD=""
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --subscription) SUBSCRIPTION="$2"; shift 2 ;;
@@ -97,6 +116,21 @@ while [[ $# -gt 0 ]]; do
     --admin-password)     ADMIN_PASSWORD="$2"; shift 2 ;;
     --event-start-date)   EVENT_START_DATE="$2"; shift 2 ;;
     --tap-export)         TAP_EXPORT_PATH="$2"; shift 2 ;;
+    --summit-group)         SUMMIT_GROUP="$2"; shift 2 ;;
+    --no-create-summit-group) CREATE_SUMMIT_GROUP=0; shift ;;
+    --create-summit-group)    CREATE_SUMMIT_GROUP=1; shift ;;
+    --no-apply-ca-exclusion)  APPLY_CA_EXCLUSION=0; shift ;;
+    --apply-ca-exclusion)     APPLY_CA_EXCLUSION=1; shift ;;
+    --ca-policy-name)         CA_POLICY_NAME="$2"; shift 2 ;;
+    --deploy-arcbox)        DEPLOY_ARCBOX=1; shift ;;
+    --deploy-localbox)      DEPLOY_LOCALBOX=1; shift ;;
+    --arcbox-rg)            ARCBOX_RG="$2"; shift 2 ;;
+    --localbox-rg)          LOCALBOX_RG="$2"; shift 2 ;;
+    --arcbox-location)      ARCBOX_LOCATION="$2"; shift 2 ;;
+    --localbox-location)    LOCALBOX_LOCATION="$2"; shift 2 ;;
+    --azure-local-instance-location) AZURE_LOCAL_INSTANCE_LOCATION="$2"; shift 2 ;;
+    --demo-admin-username)  DEMO_ADMIN_USERNAME="$2"; shift 2 ;;
+    --demo-admin-password)  DEMO_ADMIN_PASSWORD="$2"; shift 2 ;;
     -h|--help)
       grep '^#' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
@@ -180,6 +214,12 @@ if [[ $COACH -eq 1 ]]; then
     [[ -n "$ADMIN_PASSWORD" ]] || { echo "Admin password is required." >&2; exit 1; }
   fi
 
+  # Prompt for demo VM password if any ArcBox/LocalBox flag is set and none given.
+  if [[ ( $DEPLOY_ARCBOX -eq 1 || $DEPLOY_LOCALBOX -eq 1 ) && -z "$DEMO_ADMIN_PASSWORD" ]]; then
+    read -r -s -p "Enter password for ArcBox/LocalBox VM admin ($DEMO_ADMIN_USERNAME): " DEMO_ADMIN_PASSWORD; echo
+    [[ -n "$DEMO_ADMIN_PASSWORD" ]] || { echo "Demo VM admin password is required for --deploy-arcbox/--deploy-localbox." >&2; exit 1; }
+  fi
+
   LU_COUNT="${LAB_USER_COUNT:-$ATTENDEES}"
   : "${TAP_EXPORT_PATH:=$BUNDLE_ROOT/TemporaryAccessPasses.xlsx}"
 
@@ -193,6 +233,10 @@ if [[ $COACH -eq 1 ]]; then
   echo "    3) 2-vcpu-quotas.ps1      ($LOCATION, $ATTENDEES attendees$( [[ $SUBMIT_QUOTA -eq 1 ]] && echo ', submit requests' ))"
   echo "    4) 3-rbac.ps1             (group '$LAB_USERS_GROUP' on $SUB_ID)"
   echo "    5) 4-resource-groups.ps1  (${ATTENDEES}x ${RG_PREFIX}NN in $LOCATION)"
+  [[ $CREATE_SUMMIT_GROUP -eq 1 ]] && echo "    6) New-SummitSecurityGroup.ps1 (parent group '$SUMMIT_GROUP' over '$LAB_USERS_GROUP' + '$ADMIN_GROUP')"
+  [[ $APPLY_CA_EXCLUSION -eq 1 ]] && echo "    7) Set-CAExclusion.ps1     (exclude '$SUMMIT_GROUP' from CA policy '$CA_POLICY_NAME')"
+  [[ $DEPLOY_ARCBOX -eq 1 ]]      && echo "    8) deploy-arcbox.ps1       (rg '$ARCBOX_RG' in $ARCBOX_LOCATION, ~30 min, CostControl=Ignore)"
+  [[ $DEPLOY_LOCALBOX -eq 1 ]]    && echo "    9) deploy-localbox.ps1     (rg '$LOCALBOX_RG' in $LOCALBOX_LOCATION + Azure Local in $AZURE_LOCAL_INSTANCE_LOCATION, ~4-6 h)"
 
   CREATE_USERS_FLAG="$CREATE_USERS" \
   ADMIN_PASSWORD="$ADMIN_PASSWORD" \
@@ -203,6 +247,7 @@ if [[ $COACH -eq 1 ]]; then
   ADMIN_GROUP="$ADMIN_GROUP" \
   HELPERS_DIR="$HELPERS_DIR" \
   PREP_DIR="$PREP_DIR" \
+  BUNDLE_ROOT="$BUNDLE_ROOT" \
   EVENT_START_DATE="$EVENT_START_DATE" \
   SUB_ID="$SUB_ID" \
   SUB_NAME="$SUB_NAME" \
@@ -212,6 +257,19 @@ if [[ $COACH -eq 1 ]]; then
   ATTENDEES="$ATTENDEES" \
   RG_PREFIX="$RG_PREFIX" \
   SUBMIT_QUOTA="$SUBMIT_QUOTA" \
+  SUMMIT_GROUP="$SUMMIT_GROUP" \
+  CREATE_SUMMIT_GROUP_FLAG="$CREATE_SUMMIT_GROUP" \
+  APPLY_CA_EXCLUSION_FLAG="$APPLY_CA_EXCLUSION" \
+  CA_POLICY_NAME="$CA_POLICY_NAME" \
+  DEPLOY_ARCBOX_FLAG="$DEPLOY_ARCBOX" \
+  DEPLOY_LOCALBOX_FLAG="$DEPLOY_LOCALBOX" \
+  ARCBOX_RG="$ARCBOX_RG" \
+  LOCALBOX_RG="$LOCALBOX_RG" \
+  ARCBOX_LOCATION="$ARCBOX_LOCATION" \
+  LOCALBOX_LOCATION="$LOCALBOX_LOCATION" \
+  AZURE_LOCAL_INSTANCE_LOCATION="$AZURE_LOCAL_INSTANCE_LOCATION" \
+  DEMO_ADMIN_USERNAME="$DEMO_ADMIN_USERNAME" \
+  DEMO_ADMIN_PASSWORD="$DEMO_ADMIN_PASSWORD" \
   pwsh -NoLogo -Command '
     $ErrorActionPreference = "Stop"
 
@@ -308,6 +366,69 @@ if [[ $COACH -eq 1 ]]; then
         -ResourceGroupPrefix $env:RG_PREFIX `
         -ResourceGroupCount ([int]$env:ATTENDEES) `
         -StartIndex 0
+
+    # ------------------------------------------------------------
+    # 8. Microhack Sovereignty Summit security group
+    # ------------------------------------------------------------
+    $summitGroupId = $null
+    if ($env:CREATE_SUMMIT_GROUP_FLAG -eq "1") {
+      Write-Host ""
+      Write-Host "==> New-SummitSecurityGroup.ps1 ..." -ForegroundColor Cyan
+      $summitGroupId = & (Join-Path $env:HELPERS_DIR "New-SummitSecurityGroup.ps1") `
+          -GroupName     $env:SUMMIT_GROUP `
+          -LabUsersGroup $env:LAB_USERS_GROUP `
+          -AdminGroup    $env:ADMIN_GROUP `
+          -SkipModuleInstall
+    }
+
+    # ------------------------------------------------------------
+    # 9. Conditional Access policy exclusion
+    # ------------------------------------------------------------
+    if ($env:APPLY_CA_EXCLUSION_FLAG -eq "1") {
+      Write-Host ""
+      Write-Host "==> Set-CAExclusion.ps1 ..." -ForegroundColor Cyan
+      try {
+        & (Join-Path $env:HELPERS_DIR "Set-CAExclusion.ps1") `
+            -PolicyName  $env:CA_POLICY_NAME `
+            -GroupName   $env:SUMMIT_GROUP `
+            -SkipModuleInstall
+      } catch {
+        Write-Warning "Set-CAExclusion.ps1 failed: $($_.Exception.Message). Follow the manual portal steps printed above."
+      }
+    }
+
+    # ------------------------------------------------------------
+    # 10. ArcBox / LocalBox demo VMs (Challenge 5 & 6)
+    #     Region is HARDCODED per script (swedencentral / ValidateSet) —
+    #     do NOT pass the country region; deployment will fail elsewhere.
+    # ------------------------------------------------------------
+    if ($env:DEPLOY_ARCBOX_FLAG -eq "1" -or $env:DEPLOY_LOCALBOX_FLAG -eq "1") {
+      $demoPw = ConvertTo-SecureString -String $env:DEMO_ADMIN_PASSWORD -AsPlainText -Force
+      $demoDir = Join-Path $env:BUNDLE_ROOT "resources/demo-vm-creator"
+
+      if ($env:DEPLOY_ARCBOX_FLAG -eq "1") {
+        Write-Host ""
+        Write-Host "==> deploy-arcbox.ps1 (rg $($env:ARCBOX_RG) in $($env:ARCBOX_LOCATION)) ..." -ForegroundColor Cyan
+        & (Join-Path $demoDir "deploy-arcbox.ps1") `
+            -ResourceGroupName     $env:ARCBOX_RG `
+            -Location              $env:ARCBOX_LOCATION `
+            -WindowsAdminUsername  $env:DEMO_ADMIN_USERNAME `
+            -WindowsAdminPassword  $demoPw `
+            -TagCostControlIgnore  $true
+      }
+
+      if ($env:DEPLOY_LOCALBOX_FLAG -eq "1") {
+        Write-Host ""
+        Write-Host "==> deploy-localbox.ps1 (rg $($env:LOCALBOX_RG) in $($env:LOCALBOX_LOCATION)) ..." -ForegroundColor Cyan
+        & (Join-Path $demoDir "deploy-localbox.ps1") `
+            -ResourceGroupName            $env:LOCALBOX_RG `
+            -Location                     $env:LOCALBOX_LOCATION `
+            -AzureLocalInstanceLocation   $env:AZURE_LOCAL_INSTANCE_LOCATION `
+            -WindowsAdminPassword         $demoPw `
+            -TagCostControlIgnore         $true `
+            -NonInteractive
+      }
+    }
   '
 fi
 

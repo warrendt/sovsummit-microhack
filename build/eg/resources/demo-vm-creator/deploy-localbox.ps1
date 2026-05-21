@@ -80,7 +80,18 @@ param(
 
     [Parameter(Mandatory = $false)]
     [ValidateSet('australiaeast', 'southcentralus', 'eastus', 'westeurope', 'southeastasia', 'canadacentral', 'japaneast', 'centralindia')]
-    [string]$AzureLocalInstanceLocation = "westeurope"
+    [string]$AzureLocalInstanceLocation = "westeurope",
+
+    [Parameter(Mandatory = $false)]
+    [securestring]$WindowsAdminPassword,
+
+    # Tag every resource in the RG with CostControl=Ignore (prep guide pp.11-12)
+    [Parameter(Mandatory = $false)]
+    [bool]$TagCostControlIgnore = $true,
+
+    # Skip the interactive Proceed? prompt (for unattended bootstrap runs)
+    [Parameter(Mandatory = $false)]
+    [switch]$NonInteractive
 )
 
 Write-Host "`n=== Azure Arc Jumpstart LocalBox Deployment ===" -ForegroundColor Cyan
@@ -113,14 +124,19 @@ Write-Host "  - vCPU quota: 32 vCPUs (Standard_E32s_v6 or larger)" -ForegroundCo
 Write-Host "  - Deployment time: 4-6 hours" -ForegroundColor Gray
 Write-Host ""
 
-$confirm = Read-Host "Do you want to proceed? (y/N)"
+$confirm = if ($NonInteractive) { 'y' } else { Read-Host "Do you want to proceed? (y/N)" }
 if ($confirm -ne 'y' -and $confirm -ne 'Y') {
     Write-Host "Deployment cancelled." -ForegroundColor Yellow
     exit 0
 }
 
-# Prompt for password
-$WindowsAdminPassword = Read-Host -Prompt "Enter admin password for the host VM" -MaskInput
+# Get the admin password (interactive if not supplied)
+if (-not $WindowsAdminPassword) {
+    $WindowsAdminPassword = Read-Host -Prompt "Enter admin password for the host VM" -AsSecureString
+}
+$bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($WindowsAdminPassword)
+$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+[System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
 
 # Retrieve the object id of your directory's Azure Local resource provider.
 $spnProviderId = az ad sp list --display-name "Microsoft.AzureStackHCI Resource Provider" --output json | ConvertFrom-Json
@@ -148,6 +164,13 @@ $spnTenantId = az account show --output json | ConvertFrom-Json
 # Create resource group if it doesn't exist
 Write-Host "`nCreating resource group '$ResourceGroupName' in '$Location'..." -ForegroundColor Cyan
 az group create --name $ResourceGroupName --location $Location | Out-Null
+
+# Apply CostControl=Ignore tag at the RG scope (prep guide pages 11-12).
+if ($TagCostControlIgnore) {
+    Write-Host "Tagging resource group with CostControl=Ignore (prevents MCAPS governance auto-shutdown)..." -ForegroundColor Cyan
+    az tag update --resource-id (az group show -n $ResourceGroupName --query id -o tsv) `
+                  --operation merge --tags CostControl=Ignore | Out-Null
+}
 
 # Arc Jumpstart LocalBox Bicep template URL
 $templateUri = "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_jumpstart_localbox/bicep/main.bicep"
@@ -201,7 +224,7 @@ $paramsFile = Join-Path (Split-Path (New-TemporaryFile).FullName) "localbox-para
     contentVersion = "1.0.0.0"
     parameters = @{
         windowsAdminUsername = @{ value = $WindowsAdminUsername }
-        windowsAdminPassword = @{ value = $WindowsAdminPassword }
+        windowsAdminPassword = @{ value = $PlainPassword }
         spnProviderId = @{ value = $spnProviderId.id }
         tenantId = @{ value = $spnTenantId.tenantId }
         location = @{ value = $Location }
@@ -230,6 +253,10 @@ try {
 
     Write-Host "`n=== Deployment Initiated ===" -ForegroundColor Green
     Write-Host "The LocalBox deployment has been started in the background." -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "When it finishes (~4-6 h), tag LocalBox-Client + disable auto-shutdown with:" -ForegroundColor Yellow
+    Write-Host ('  az tag update --resource-id $(az vm show -g {0} -n LocalBox-Client --query id -o tsv) --operation merge --tags CostControl=Ignore' -f $ResourceGroupName) -ForegroundColor DarkGray
+    Write-Host ('  az resource delete -g {0} --resource-type microsoft.devtestlab/schedules -n shutdown-computevm-LocalBox-Client' -f $ResourceGroupName) -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "To monitor deployment progress:" -ForegroundColor Cyan
     Write-Host "  1. Azure Portal: Resource Groups > $ResourceGroupName > Deployments" -ForegroundColor Gray

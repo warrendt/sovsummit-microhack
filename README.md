@@ -5,6 +5,33 @@ A multi-country adaptation of the
 for the **Sovereignty Summit** series — starting with **South Africa**, then
 Egypt, Nigeria, UAE, Saudi Arabia, and Qatar.
 
+## 60-second quick start (South Africa)
+
+Pre-rendered bundles live under [`build/`](build/) — clone and run:
+
+```bash
+git clone https://github.com/warrendt/sovsummit-microhack
+cd sovsummit-microhack/build/za/bootstrap
+
+# Attendee / engineer mode (single subscription, just the Bicep landing zone):
+./build-za.sh
+
+# Coach mode (full live-event prep: users, quotas, RBAC, summit security group,
+#             Conditional Access exclusion, optional ArcBox + LocalBox demo VMs):
+./build-za.sh --coach --create-users --attendees 30 \
+              --event-start-date 2026-02-10 \
+              --admin-password '<lab-admin-pw>' \
+              --deploy-arcbox --deploy-localbox \
+              --demo-admin-password '<demo-vm-pw>'
+```
+
+Full flag reference and Microhack prep-guide cross-walk:
+[`countries/za/overrides/bootstrap/README.md`](countries/za/overrides/bootstrap/README.md).
+
+Other countries (`eg`, `ng`, `ae`, `sa`, `qa`) render today but currently ship
+without a custom bootstrap — see [`tools/render.py`](tools/render.py) and
+[`common/LOCAL_LAB.md`](common/LOCAL_LAB.md).
+
 The upstream MicroHack content is preserved verbatim under [`common/`](common/)
 and customized per event via [`countries/<iso2>/`](countries/) overrides plus a
 [`country.yaml`](common/schema/country.schema.yaml) configuration file. A

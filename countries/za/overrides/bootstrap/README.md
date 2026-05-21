@@ -91,6 +91,58 @@ PS scripts can run. Coach mode also expects you to have **Owner +
 User Access Administrator** at the subscription scope and an existing
 Entra ID group containing the attendees.
 
+#### Optional: Sovereignty Summit security group + Conditional Access exclusion
+
+Default **on** under `--coach` (disable with `--no-create-summit-group`
+and/or `--no-apply-ca-exclusion`):
+
+- `--create-summit-group` — runs `New-SummitSecurityGroup.ps1` to create the
+  parent group **"Microhack Sovereignty Summit"** with `LabUsers` + `AdminUsers`
+  nested as members (rename with `--summit-group "<custom name>"`).
+- `--apply-ca-exclusion` — runs `Set-CAExclusion.ps1` to add that group to the
+  **Security info registration for Microsoft partners and vendors** Conditional
+  Access policy's `excludeGroups`. If your Graph token lacks
+  `Policy.ReadWrite.ConditionalAccess`, the helper prints exact portal steps.
+
+#### Optional: ArcBox + LocalBox demo VMs (Challenges 5 & 6)
+
+Off by default (they cost real money):
+
+```bash
+./build-za.sh --coach --create-users --attendees 30 \
+              --admin-password '<pw>' \
+              --deploy-arcbox --deploy-localbox \
+              --demo-admin-password '<vm-admin-pw>'
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--deploy-arcbox` | off | Deploys ArcBox-full (~30 min) into `rg-arcbox` (`swedencentral`). Override with `--arcbox-rg`/`--arcbox-location` only if you know what you're doing — region is fixed by the upstream Bicep. |
+| `--deploy-localbox` | off | Deploys LocalBox (~4-6 h async) into `rg-localbox` (`swedencentral` shell + Azure Local in `${country.azure.azure_local_instance_location}`). `--azure-local-instance-location` must stay in the LocalBox ValidateSet. |
+| `--demo-admin-username` | `arcdemo` | Local VM admin username for both. |
+| `--demo-admin-password` | (prompt) | Local VM admin password for both. |
+
+Both deploy scripts apply `CostControl=Ignore` at the resource-group scope
+automatically. **After the ~30 min ArcBox deploy completes**, copy-paste the
+two commands the script prints to tag `ArcBox-Client` and delete its DevTestLab
+auto-shutdown schedule (LocalBox prints the same for `LocalBox-Client`).
+
+## Microhack prep guide cross-walk
+
+| PDF page | Step | Wired here? |
+|---|---|---|
+| 1-4 | MCAPS subscription request | Manual (see `common/LOCAL_LAB.md` §1) |
+| 5 | Security group "Microhack AVS Group" → renamed to **Microhack Sovereignty Summit** | ✅ `--create-summit-group` |
+| 5-6 | Exclude group from Conditional Access "Security info registration for Microsoft partners and vendors" | ✅ `--apply-ca-exclusion` (auto + manual fallback) |
+| 7 | Create-MH-Users + TAP | ✅ `--create-users` |
+| 7 | Create-AdminUsers | ✅ `--create-users` |
+| 7-8 | 1-resource-providers / 2-vcpu-quotas / 3-rbac / 4-resource-groups | ✅ wired into `--coach` |
+| 9 | Quotas: Dsv5=8, Esv6=32, DCasv5=6 per student | ⚠️ Dsv5 + DCasv5 covered; **Esv6 must be requested manually** (script doesn't request that family) |
+| 9-11 | Deploy ArcBox (~30 min) | ✅ `--deploy-arcbox` |
+| 9-11 | Deploy LocalBox (~4-6 h) | ✅ `--deploy-localbox` |
+| 11-12 | `CostControl=Ignore` on rg-arcbox/rg-localbox + clients + disable auto-shutdown | ✅ RG-level auto; client VM tag + schedule delete printed for coach after deploy |
+| 12-13 | Cost estimates ~1000 USD/event | Documented in `common/LOCAL_LAB.md` §8.5 |
+
 ## Deployment outputs
 
 After the script finishes you'll see:
