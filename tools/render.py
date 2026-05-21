@@ -100,6 +100,8 @@ def copy_tree(src: Path, dst: Path, country: dict, iso2: str) -> None:
                 shutil.copy2(path, target)
                 continue
             target.write_text(substitute(text, country, iso2), encoding="utf-8")
+            # write_text drops the source mode bits; re-apply so .sh stays executable.
+            target.chmod(path.stat().st_mode)
         else:
             shutil.copy2(path, target)
 
