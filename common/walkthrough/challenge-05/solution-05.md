@@ -93,7 +93,7 @@ ATTENDEE_ID="${RESOURCE_GROUP}"
 # Generate a unique random hash suffix (different on each run)
 HASH_SUFFIX=$(echo -n "$ATTENDEE_ID-$(date +%s)-$RANDOM" | md5sum | cut -c1-6)
 
-LOCATION="northeurope"
+LOCATION="${country.azure.primary_region}"  # ${country.summit_edition} default — primary region for ${country.name}
 AKS_CLUSTER_NAME="aks-cvmcluster$HASH_SUFFIX"
 DNS_LABEL="cvmcluster$HASH_SUFFIX"
 ADMIN_USERNAME="azureuser"

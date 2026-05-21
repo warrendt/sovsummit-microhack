@@ -139,7 +139,7 @@ ATTENDEE_ID="${RESOURCE_GROUP}"
 # Generate a short hash from ATTENDEE_ID with random component for uniqueness
 HASH_SUFFIX=$(echo -n "${ATTENDEE_ID}-${RANDOM}-${RANDOM}" | md5sum | cut -c1-8)
 
-LOCATION="northeurope"
+LOCATION="${country.azure.primary_region}"  # ${country.summit_edition} default — primary region for ${country.name}
 ADMIN_USERNAME="azureuser"
 KEYVAULT_NAME="kv-cc-${HASH_SUFFIX}"  # Must be globally unique
 SSH_KEY_NAME="cc-${ATTENDEE_ID}-key"

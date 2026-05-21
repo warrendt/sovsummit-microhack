@@ -60,7 +60,7 @@ Set up the common variables that will be used throughout this challenge:
 # Customize RESOURCE_GROUP for each participant
 RESOURCE_GROUP="labuser-xx"  # Change this for each participant (e.g., labuser-01, labuser-02, ...)
 SUBSCRIPTION_ID="xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx"  # Replace with your subscription ID
-LOCATION="norwayeast"  # If attending a MicroHack event, change to the location provided by your local MicroHack organizers
+LOCATION="${country.azure.primary_region}"  # ${country.summit_edition} default — primary region for ${country.name}
 ```
 
 > [!WARNING]

@@ -31,7 +31,7 @@ RESOURCE_GROUP="labuser-xx"  # Change this for each participant (e.g., labuser-0
 
 ATTENDEE_ID="${RESOURCE_GROUP}"
 SUBSCRIPTION_ID="xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx"  # Replace with your subscription ID
-LOCATION="norwayeast"  # If attending a MicroHack event, change to the location provided by your local MicroHack organizers
+LOCATION="${country.azure.primary_region}"  # ${country.summit_edition} default — primary region for ${country.name}
 # Generate friendly display names with attendee ID
 DISPLAY_PREFIX="Lab User-${ATTENDEE_ID#labuser-}"  # Converts "labuser-01" to "Lab User-01"
 GROUP_PREFIX="Lab-User-${ATTENDEE_ID#labuser-}"    # Converts "labuser-01" to "Lab-User-01"

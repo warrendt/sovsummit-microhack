@@ -82,7 +82,7 @@ RESOURCE_GROUP="labuser-xx"  # Change this for each participant (e.g., labuser-0
 
 ATTENDEE_ID="${RESOURCE_GROUP}"
 SUBSCRIPTION_ID="xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx"  # Replace with your subscription ID
-LOCATION="norwayeast" #If attending a MicroHack event, change to the location provided by your local MicroHack organizers
+LOCATION="${country.azure.primary_region}" # ${country.summit_edition} default — primary region for ${country.name}
 
 # Generate friendly display names with attendee ID
 DISPLAY_PREFIX="Lab User-${ATTENDEE_ID#labuser-}"  # Converts "labuser-01" to "Lab User-01"
@@ -143,7 +143,7 @@ az policy assignment create \
   --display-name "$POLICY_DISPLAY_NAME" \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP" \
   --policy "$POLICY_DEFINITION_ID" \
-  --params '{"listOfAllowedLocations":{"value":["norwayeast","germanynorth", "northeurope"]}}'
+  --params '{"listOfAllowedLocations":{"value":["${country.azure.primary_region}","${country.azure.paired_region}"]}}'
 ```
 
 ![image](./img/cloud-shell3.jpg)
@@ -162,7 +162,7 @@ az policy assignment create \
   --policy "$RG_POLICY_DEFINITION_ID" \
   --params '{
     "listOfAllowedLocations": {
-      "value": ["norwayeast", "germanynorth", "northeurope"]
+      "value": ["${country.azure.primary_region}", "${country.azure.paired_region}"]
     }
   }' \
 --enforcement-mode DoNotEnforce
@@ -339,11 +339,7 @@ Create a JSON file named `sovereign-cloud-initiative.json`:
     "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c",
     "parameters": {
       "listOfAllowedLocations": {
-        "value": [
-          "norwayeast",
-          "germanynorth",
-          "northeurope"
-        ]
+        "value": ["${country.azure.primary_region}", "${country.azure.paired_region}"]
       }
     }
   },
@@ -351,11 +347,7 @@ Create a JSON file named `sovereign-cloud-initiative.json`:
     "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/e765b5de-1225-4ba3-bd56-1ac6695af988",
     "parameters": {
       "listOfAllowedLocations": {
-        "value": [
-          "norwayeast",
-          "germanynorth",
-          "northeurope"
-        ]
+        "value": ["${country.azure.primary_region}", "${country.azure.paired_region}"]
       }
     }
   },
@@ -648,7 +640,7 @@ STORAGE_NAME="sovereignstore$RANDOM"
 az storage account create \
   --name "$STORAGE_NAME" \
   --resource-group "$RESOURCE_GROUP" \
-  --location "norwayeast" \
+  --location "$LOCATION" \
   --sku Standard_LRS \
   --tags DataClassification=Sovereign
 ```
@@ -662,7 +654,7 @@ Expected result: ✅ **Success**
 az storage account create \
   --name "testuntagged$RANDOM" \
   --resource-group "$RESOURCE_GROUP" \
-  --location "norwayeast" \
+  --location "$LOCATION" \
   --sku Standard_LRS
 ```
 
@@ -675,7 +667,7 @@ Expected result: ❌ **Error** - Required tag 'DataClassification' with value 'S
 az network public-ip create \
   --name "test-public-ip" \
   --resource-group "$RESOURCE_GROUP" \
-  --location "norwayeast" \
+  --location "$LOCATION" \
   --tags DataClassification=Sovereign
 ```
 
@@ -782,7 +774,7 @@ az policy assignment create \
   --display-name "${DISPLAY_PREFIX} - Add DataClassification Tag with Remediation" \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP" \
   --policy "$POLICY_DEF_ID" \
-  --location "norwayeast" \
+  --location "$LOCATION" \
   --assign-identity \
   --identity-scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP" \
   --role "Contributor"
@@ -827,7 +819,7 @@ az policy assignment create \
       "value": "DataClassification"
     }
   }' \
-  --location "norwayeast" \
+  --location "$LOCATION" \
   --assign-identity \
   --identity-scope "/subscriptions/$SUBSCRIPTION_ID" \
   --role "Contributor"
