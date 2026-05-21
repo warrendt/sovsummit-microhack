@@ -1,0 +1,38 @@
+iso2: ae
+name: United Arab Emirates
+summit_edition: "Sovereignty Summit UAE (TBD)"
+language: en
+
+azure:
+  primary_region: uaenorth
+  primary_region_display: UAE North
+  paired_region: uaecentral
+  paired_region_display: UAE Central
+  sovereign_region: false
+  confidential_compute_skus:
+    - Standard_DC2as_v5
+    - Standard_EC2as_v5
+  cmk_hsm_sku: Premium
+  azure_local_instance_location: westeurope
+  arc_region: uaenorth
+
+regulatory:
+  primary_law: UAE Federal Data Protection Law (Federal Decree-Law No. 45 of 2021)
+  frameworks:
+    - PDPL 45/2021
+    - DIFC Data Protection Law (DIFC Law No. 5 of 2020)
+    - ADGM Data Protection Regulations 2021
+    - CBUAE consumer protection regulation
+  regulator_links:
+    - name: UAE Data Office
+      url: https://u.ae/en/about-the-uae/digital-uae/data/data-office
+
+scenarios:
+  public_sector_tenant: "TBD"
+  financial_tenant: "TBD"
+
+sponsor:
+  primary: TBD
+  community: Sovereignty Summit AE Chapter
+
+extra_challenges: []

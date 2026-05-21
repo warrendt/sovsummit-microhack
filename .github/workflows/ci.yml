@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  render:
+    name: Render every country
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r tools/requirements.txt
+      - name: Render all countries (check mode)
+        run: python tools/render.py --check
+      - name: Render all countries (real)
+        run: python tools/render.py
+      - name: Smoke-test ZA bundle
+        run: |
+          test -f build/za/Readme.md
+          test -f build/za/challenges/challenge-sa-01-popia-residency.md
+          grep -q "southafricanorth" build/za/Readme.md
+          grep -q "POPIA" build/za/Readme.md
+          # Schema doc legitimately contains the literal token syntax; exclude it.
+          if grep -RIn "\${country\." build/za/ --exclude-dir=schema; then
+            echo "Unresolved tokens in ZA bundle"; exit 1
+          fi
+
+  yamllint:
+    name: Lint YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install yamllint
+      - run: yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable, truthy: disable, comments: {min-spaces-from-content: 1}}}" countries/ common/schema/

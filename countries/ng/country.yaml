@@ -1,0 +1,37 @@
+iso2: ng
+name: Nigeria
+summit_edition: "Sovereignty Summit Nigeria (TBD)"
+language: en
+
+azure:
+  primary_region: southafricanorth   # No Nigeria region yet; ZA is the typical fallback
+  primary_region_display: South Africa North (closest sovereign-friendly to Nigeria)
+  paired_region: southafricawest
+  paired_region_display: South Africa West
+  sovereign_region: false
+  confidential_compute_skus:
+    - Standard_DC2as_v5
+    - Standard_EC2as_v5
+  cmk_hsm_sku: Premium
+  azure_local_instance_location: westeurope
+  arc_region: southafricanorth
+
+regulatory:
+  primary_law: Nigeria Data Protection Act, 2023
+  frameworks:
+    - NDPA 2023
+    - NDPR 2019
+    - CBN cloud computing framework
+  regulator_links:
+    - name: Nigeria Data Protection Commission
+      url: https://ndpc.gov.ng/
+
+scenarios:
+  public_sector_tenant: "TBD"
+  financial_tenant: "TBD"
+
+sponsor:
+  primary: TBD
+  community: Sovereignty Summit NG Chapter
+
+extra_challenges: []
