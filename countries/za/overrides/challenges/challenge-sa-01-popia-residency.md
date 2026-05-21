@@ -56,22 +56,61 @@ By the end of this challenge you will have:
 - [ ] Your evidence pack maps each control to a POPIA section
       (1→s.19, 2→s.19+s.20, 3→s.72, 4→s.72/process).
 
-## Hints
+## Guiding questions (try before peeking)
 
-- Start from the built-in initiative
-  `Allowed locations` (`e56962a6-4747-49cd-b67b-bf8b01975c4c`) and extend with
-  `Allowed locations for resource groups`.
-- For the CMK requirement, combine
-  `Storage accounts should use customer-managed key for encryption`
-  (deployIfNotExists) with
-  `Azure Key Vault should use RBAC permission model`.
-- Diagnostic-data residency can be enforced via
-  `Configure Azure Activity logs to stream to specified Log Analytics workspace`
-  pinned to a workspace in `${country.azure.primary_region}`.
+- A built-in `Allowed locations` policy denies *resources*; what does it
+  fail to deny, and which companion policy must you also assign?
+- "Deny at create time" vs "audit + remediate later" — which one would
+  you defend to the Information Regulator after a cross-border leak?
+- Diagnostic settings can quietly route data out of the country if a
+  developer picks a Log Analytics workspace in `westeurope`. How do you
+  *prevent* that, not just *detect* it?
+- POPIA s.72 allows cross-border transfers in defined circumstances. How
+  would you build an **exemption workflow** that documents the legal
+  basis whenever an exception is granted?
+
+## ${country.name}-specific pitfalls
+
+- **`${country.azure.cmk_hsm_sku}` Key Vault availability** in
+  `${country.azure.primary_region}` is reliable but verify before the
+  workshop — Managed HSM is **not** in every South African region.
+- **Activity logs vs resource logs:** activity logs are a tenant-level
+  setting and route to subscription-level diagnostic settings —
+  pinning the workspace there protects *everything*, not just one
+  resource type.
+- **Geo-redundant storage** in `${country.azure.primary_region}`
+  replicates to `${country.azure.paired_region}`. Both are inside South
+  Africa, but make sure your `Allowed locations` initiative explicitly
+  includes the paired region or your GRS deployments will fail policy.
+- **Tag remediation** requires a managed identity on the policy
+  assignment — without it `modify`-effect policies report
+  "Non-compliant" forever.
+
+## Deeper POPIA mapping
+
+| Control                              | POPIA section(s) |
+|--------------------------------------|------------------|
+| Region restriction                   | s.72             |
+| HSM-backed CMK + key custody         | s.19, s.20       |
+| Record of processing activities      | s.14             |
+| Notification of security compromise  | s.22             |
+| Special personal information         | s.26             |
+| Information Officer responsibilities | s.55             |
+
+Each entry in your evidence pack should reference at least one row.
 
 ## Regulator references
 
 ${country.regulatory.regulator_links}
 
-## Estimated duration
-60 minutes.
+## Stretch goals
+
+- Publish the initiative as Bicep under source control with a CI check
+  that fails the build if anyone weakens a `deny` effect to `audit`.
+- Build a Logic App that emails the Information Officer whenever an
+  exemption is granted under POPIA s.72.
+- Extend the evidence pack with a quarterly attestation template the
+  Accounting Officer can sign and return to the Information Regulator.
+- Repeat the entire challenge for the financial-services scenario
+  (${country.scenarios.financial_tenant}) and add the SARB Directive
+  3/2018 mapping next to the POPIA one.

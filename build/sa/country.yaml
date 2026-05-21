@@ -1,0 +1,56 @@
+iso2: sa
+name: Saudi Arabia
+summit_edition: "Sovereignty Summit Saudi Arabia 2026"
+language: en
+
+azure:
+  primary_region: saudiarabiaeast
+  primary_region_display: Saudi Arabia East
+  paired_region: qatarcentral
+  paired_region_display: Qatar Central
+  sovereign_region: true
+  paired_region_rationale: "No public Azure pair is listed yet for Saudi Arabia East; this edition uses Qatar Central as the most plausible GCC geo-DR target when an out-of-country recovery site is explicitly approved."
+  availability_architecture: "Three in-country availability zones first; use cross-border DR only by exception."
+  confidential_compute_skus:
+    - Standard_DC2as_v5
+    - Standard_DC4as_v5
+    - Standard_EC2as_v5
+    - Standard_EC4as_v5
+  cmk_hsm_sku: Premium
+  azure_local_instance_location: saudiarabiaeast
+  arc_region: saudiarabiaeast
+
+regulatory:
+  primary_law: Personal Data Protection Law (PDPL) — Royal Decree M/19 of 1443 AH
+  enforcement_status: In force with implementing regulations since September 2024
+  primary_regulator: Saudi Data & AI Authority (SDAIA)
+  public_sector_cyber_regulator: National Cybersecurity Authority (NCA)
+  financial_sector_regulator: Saudi Central Bank (SAMA)
+  regulator_split: "SDAIA governs personal data, NCA sets national cyber controls for government and critical sectors, and SAMA adds sector-specific cloud and cyber obligations for regulated financial institutions."
+  cross_border_transfer_model: "Transfers outside the Kingdom require a lawful basis, a transfer risk assessment, and an SDAIA-approved safeguard mechanism such as adequacy, SCCs, BCRs, or another permitted exception."
+  frameworks:
+    - PDPL + Implementing Regulations
+    - SDAIA Regulation on Personal Data Transfer Outside the Kingdom
+    - SAMA Cyber Security Framework v1.0
+    - NCA Essential Cybersecurity Controls (ECC-1:2018)
+    - NCA Cloud Cybersecurity Controls (CCC-1:2020)
+    - NCA Critical Systems Cybersecurity Controls (CSCC-1:2019)
+  regulator_links:
+    - name: Saudi Data & AI Authority (SDAIA)
+      url: https://sdaia.gov.sa/
+    - name: Saudi Central Bank (SAMA)
+      url: https://rulebook.sama.gov.sa/
+    - name: National Cybersecurity Authority (NCA)
+      url: https://nca.gov.sa/en/
+
+scenarios:
+  public_sector_tenant: "A Saudi Vision 2030 government entity operating a national licensing and permits platform"
+  financial_tenant: "A SAMA-regulated bank running instant payments and digital-wallet services"
+
+sponsor:
+  primary: Microsoft Arabia
+  community: Sovereignty Summit KSA Chapter
+
+extra_challenges:
+  - challenge-ksa-01-nca-ccc-sovereign-landing-zone
+  - challenge-ksa-02-sama-confidential-aks-payments

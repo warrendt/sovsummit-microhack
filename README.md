@@ -49,6 +49,14 @@ LICENSE                     MIT (upstream + customizations)
 
 ## Rendering a country bundle
 
+Rendered bundles for every country are **committed to the repo** under
+[`build/<iso2>/`](build/) so attendees can clone and run instantly — no Python
+required. CI re-renders on every push and fails if the committed bundles drift
+out of date.
+
+If you change `common/`, a country's `country.yaml`, or any country override,
+regenerate the bundles before committing:
+
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r tools/requirements.txt
@@ -62,7 +70,8 @@ python tools/render.py za
 
 Tokens of the form `${country.<dotted.path>}` (for example
 `${country.azure.primary_region}`) found in any text file are replaced with the
-value from the country's `country.yaml`.
+value from the country's `country.yaml`. Trainer-only material under
+`common/walkthrough/` is **not** copied into attendee bundles.
 
 The generated `build/za/` is the bundle you hand to attendees of the South
 Africa summit.
@@ -71,7 +80,7 @@ Africa summit.
 
 | Order | Country | ISO2 | Status | Primary region |
 |---|---|---|---|---|
-| 1 | South Africa | `za` | ✅ Authored | `southafricanorth` |
+| 1 | South Africa | `za` | ✅ Authored + enriched (v0.2-za) | `southafricanorth` |
 | 2 | Egypt | `eg` | ✅ Authored | `uaenorth` (no in-country region) |
 | 3 | Nigeria | `ng` | ✅ Authored | `southafricanorth` (no in-country region) |
 | 4 | UAE | `ae` | ✅ Authored | `uaenorth` |

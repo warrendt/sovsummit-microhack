@@ -24,11 +24,26 @@ jobs:
         run: |
           test -f build/za/Readme.md
           test -f build/za/challenges/challenge-sa-01-popia-residency.md
+          test -f build/za/challenges/challenge-01.md
           grep -q "southafricanorth" build/za/Readme.md
           grep -q "POPIA" build/za/Readme.md
+          # Walkthroughs and lab guides must NOT ship in attendee bundles.
+          if [ -d build/za/walkthrough ]; then
+            echo "Trainer walkthroughs leaked into attendee bundle"; exit 1
+          fi
+          if [ -f build/za/LOCAL_LAB.md ]; then
+            echo "Lab guide leaked into attendee bundle"; exit 1
+          fi
           # Schema doc legitimately contains the literal token syntax; exclude it.
           if grep -RIn "\${country\." build/za/ --exclude-dir=schema; then
             echo "Unresolved tokens in ZA bundle"; exit 1
+          fi
+      - name: Drift check — committed build/ must match fresh render
+        run: |
+          if ! git diff --quiet -- build/; then
+            echo "build/ is stale. Run 'python tools/render.py' and commit the result."
+            git --no-pager diff --stat -- build/
+            exit 1
           fi
 
   yamllint:

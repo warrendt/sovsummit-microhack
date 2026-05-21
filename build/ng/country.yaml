@@ -1,0 +1,53 @@
+iso2: ng
+name: Nigeria
+summit_edition: "Sovereignty Summit Nigeria 2026"
+language: en
+
+azure:
+  # No in-country Azure region as of mid-2026. Nigerian sovereign designs use
+  # Azure Local + Arc for regulated workloads that must remain in Nigeria, with
+  # South Africa North reserved for non-regulated / derived data.
+  primary_region: southafricanorth
+  primary_region_display: South Africa North (closest hyperscale region to Nigeria)
+  paired_region: southafricawest
+  paired_region_display: South Africa West
+  sovereign_region: false
+  in_country_region_available: false
+  confidential_compute_skus:
+    - Standard_DC2as_v5
+    - Standard_DC4as_v5
+    - Standard_EC2as_v5
+    - Standard_EC4as_v5
+  cmk_hsm_sku: Premium
+  azure_local_instance_location: southafricanorth
+  arc_region: southafricanorth
+
+regulatory:
+  primary_law: Nigeria Data Protection Act 2023 (NDPA)
+  cross_border_requires_adequacy: true
+  breach_notification_hours: 72
+  frameworks:
+    - Nigeria Data Protection Act 2023 (NDPA) — ss.24, 32, 40, 41, 42, 43, 44, 65
+    - Nigeria Data Protection Regulation 2019 (NDPR) + NITDA implementation framework
+    - NDPC Guidance Notice on Registration of Data Controllers and Data Processors of Major Importance (14 Feb 2024)
+    - CBN Risk-Based Cybersecurity Framework and Guidelines for Deposit Money Banks and Payment Service Banks (2024)
+    - CBN Guidelines on Shared Services Arrangements for Banks and Other Financial Institutions (cloud / outsourcing approval)
+  regulator_links:
+    - name: Nigeria Data Protection Commission
+      url: https://ndpc.gov.ng/
+    - name: Central Bank of Nigeria
+      url: https://www.cbn.gov.ng/
+    - name: National Information Technology Development Agency (NITDA)
+      url: https://www.nitda.gov.ng/
+
+scenarios:
+  public_sector_tenant: "National Identity Management Commission (NIMC) identity-verification and citizen-services workload"
+  financial_tenant: "A tier-1 Nigerian bank modernising digital channels under CBN cloud and outsourcing rules"
+
+sponsor:
+  primary: Microsoft Nigeria
+  community: Sovereignty Summit NG Chapter
+
+extra_challenges:
+  - challenge-ng-01-ndpa-cross-border-sdcmi
+  - challenge-ng-02-cbn-hybrid-azure-local

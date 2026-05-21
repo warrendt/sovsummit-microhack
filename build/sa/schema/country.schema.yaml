@@ -1,0 +1,50 @@
+# country.yaml schema (informal — validated by tools/render.py)
+#
+# Every countries/<iso2>/country.yaml file must conform to this shape.
+# Fields marked (required) are mandatory; everything else is optional.
+#
+# Tokens of the form ${country.<dotted.path>} found in any text file under
+# common/ or countries/<iso2>/overrides/ are replaced at render time with the
+# value at that path in country.yaml. Lists are joined with ", ".
+
+iso2: za                          # (required) ISO 3166-1 alpha-2, lowercase
+name: South Africa                # (required) human-readable country name
+summit_edition: "Sovereignty Summit South Africa 2026"   # (required)
+language: en                      # ISO 639-1 (default: en)
+
+azure:
+  primary_region: southafricanorth        # (required) Azure region slug
+  primary_region_display: South Africa North
+  paired_region: southafricawest          # (required)
+  paired_region_display: South Africa West
+  sovereign_region: false                 # true only for true Microsoft Cloud for Sovereignty regions
+  confidential_compute_skus:
+    - Standard_DC2as_v5
+    - Standard_EC2as_v5
+  cmk_hsm_sku: Premium                    # Key Vault SKU (Standard or Premium)
+  azure_local_instance_location: westeurope
+  arc_region: southafricanorth
+
+regulatory:
+  primary_law: POPIA
+  frameworks:
+    - POPIA
+    - SARB Directive 3/2018
+    - FSCA Joint Standard 2 of 2024
+    - NCA
+  regulator_links:
+    - name: Information Regulator (South Africa)
+      url: https://inforegulator.org.za/
+    - name: South African Reserve Bank
+      url: https://www.resbank.co.za/
+
+scenarios:
+  public_sector_tenant: "Department of Home Affairs digital identity workload"
+  financial_tenant: "A South African tier-1 retail bank issuing virtual cards"
+
+sponsor:
+  primary: Microsoft South Africa
+  community: Sovereignty Summit ZA Chapter
+
+extra_challenges:
+  - challenge-sa-01-popia-residency

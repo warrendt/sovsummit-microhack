@@ -1,0 +1,53 @@
+iso2: eg
+name: Egypt
+summit_edition: "Sovereignty Summit Egypt 2026"
+language: en
+
+azure:
+  # No in-country Azure region yet (mid-2026). UAE North is the closest hyperscale
+  # region; CBE-regulated and PDPL-regulated workloads typically stay on-premises
+  # via Azure Local + Arc, with UAE North used only for non-regulated/derived data.
+  primary_region: uaenorth
+  primary_region_display: UAE North (closest hyperscale region to Egypt)
+  paired_region: uaecentral
+  paired_region_display: UAE Central
+  sovereign_region: false
+  in_country_region_available: false
+  confidential_compute_skus:
+    - Standard_DC2as_v5
+    - Standard_DC4as_v5
+    - Standard_EC2as_v5
+    - Standard_EC4as_v5
+  cmk_hsm_sku: Premium
+  azure_local_instance_location: uaenorth
+  arc_region: uaenorth
+
+regulatory:
+  primary_law: Personal Data Protection Law (Law No. 151 of 2020)
+  enforcement_date: "2026-10-31"
+  cross_border_requires_permit: true
+  breach_notification_hours: 72
+  frameworks:
+    - PDPL Law 151/2020 + Executive Regulations (Decree 816 of 2025)
+    - Central Bank of Egypt (CBE) Cloud Computing Framework
+    - NTRA telecom data rules
+    - Egypt National Cybersecurity Strategy (EG-CERT)
+  regulator_links:
+    - name: Personal Data Protection Center (PDPC)
+      url: https://pdpc.gov.eg/
+    - name: Central Bank of Egypt
+      url: https://www.cbe.org.eg/
+    - name: National Telecommunications Regulatory Authority (NTRA)
+      url: https://www.tra.gov.eg/
+
+scenarios:
+  public_sector_tenant: "Ministry of Communications and Information Technology (MCIT) citizen-services portal"
+  financial_tenant: "An Egyptian tier-1 bank operating mobile wallets under CBE cloud rules"
+
+sponsor:
+  primary: Microsoft Egypt
+  community: Sovereignty Summit EG Chapter
+
+extra_challenges:
+  - challenge-eg-01-pdpc-cross-border-permit
+  - challenge-eg-02-hybrid-cbe-azure-local

@@ -77,9 +77,17 @@ def substitute(text: str, country: dict, iso2: str) -> str:
     return TOKEN_RE.sub(repl, text)
 
 
+EXCLUDE_DIRS = {"walkthrough"}
+EXCLUDE_FILES = {"LOCAL_LAB.md"}
+
+
 def copy_tree(src: Path, dst: Path, country: dict, iso2: str) -> None:
     for path in src.rglob("*"):
         rel = path.relative_to(src)
+        if any(part in EXCLUDE_DIRS for part in rel.parts):
+            continue
+        if path.is_file() and path.name in EXCLUDE_FILES:
+            continue
         target = dst / rel
         if path.is_dir():
             target.mkdir(parents=True, exist_ok=True)
