@@ -43,6 +43,24 @@ In this country edition the following challenges run in order:
 6. Azure Local + Arc — [`challenges/challenge-06.md`](challenges/challenge-06.md)
 7. **🇿🇦 POPIA data-residency enforcement** — [`challenges/challenge-sa-01-popia-residency.md`](challenges/challenge-sa-01-popia-residency.md)
 
+## Build the environment
+
+A one-shot Bicep + script bootstrap stands up the foundation an attendee
+needs to start Challenge 1: an in-country resource group, Premium HSM Key
+Vault, RSA-HSM key with rotation policy, GRS storage account encrypted
+with that CMK, Log Analytics workspace, and the subscription-scope
+Allowed-Locations policy assignments pinned to South Africa regions.
+
+```bash
+cd bootstrap
+./build-za.sh         # bash / zsh
+# or
+pwsh ./build-za.ps1   # PowerShell
+```
+
+See [`bootstrap/README.md`](bootstrap/README.md) for full details, what
+gets deployed, prerequisites, and cleanup.
+
 ## Attribution
 Based on the [Microsoft Sovereign Cloud MicroHack](https://github.com/microsoft/MicroHack/tree/main/03-Azure/01-03-Infrastructure/01_Sovereign_Cloud)
 (MIT-licensed) by Jan Egil Ring, Ye Zhang, Murali Rao Yelamanchili and other
