@@ -72,6 +72,7 @@ param(
     [string]$ResourceGroupPrefix = 'labuser-',
     [switch]$SubmitQuotaRequests,
 
+    # <<<INTERNAL_ONLY>>>
     [switch]$CreateUsers,
     [int]$LabUserCount = 0,
     [int]$AdminUserCount = 5,
@@ -79,6 +80,7 @@ param(
     [securestring]$AdminPassword,
     [datetime]$EventStartDate,
     [string]$TapExportPath
+    # <<<END_INTERNAL_ONLY>>>
 )
 
 $ErrorActionPreference = 'Stop'
@@ -152,6 +154,7 @@ if ($Coach) {
         throw "Expected coach prep scripts at $prepDir but did not find them. Run this from a rendered build/za/bootstrap/ folder."
     }
 
+    # <<<INTERNAL_ONLY>>>
     if ($CreateUsers) {
         if (-not (Test-Path $helpersDir)) {
             throw "-CreateUsers requires preparation helpers at $helpersDir."
@@ -178,6 +181,7 @@ if ($Coach) {
         Write-Host "==> [coach] Create-AdminUsers.ps1 — creating $AdminUserCount admin users in group '$AdminGroup' (tenant scope)..." -ForegroundColor Cyan
         & (Join-Path $helpersDir 'Create-AdminUsers.ps1') -UserCount $AdminUserCount -GroupName $AdminGroup -Password $AdminPassword
     }
+    # <<<END_INTERNAL_ONLY>>>
 
     Write-Host ""
     Write-Host "==> [coach] 2-vcpu-quotas.ps1 — checking vCPU quota in $Location for $Attendees attendees..." -ForegroundColor Cyan

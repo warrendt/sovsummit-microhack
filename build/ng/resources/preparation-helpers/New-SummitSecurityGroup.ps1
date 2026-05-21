@@ -75,7 +75,7 @@ if (-not $parent) {
 foreach ($childName in @($LabUsersGroup, $AdminGroup)) {
     $child = Get-MgGroup -Filter "displayName eq '$childName'" -ConsistencyLevel eventual -CountVariable c | Select-Object -First 1
     if (-not $child) {
-        Write-Warning "Child group '$childName' not found — skipping nesting. Create it first (Create-MHUsers.ps1 / Create-AdminUsers.ps1)."
+        Write-Warning "Child group '$childName' not found — skipping nesting. Create it first in Entra ID."
         continue
     }
 

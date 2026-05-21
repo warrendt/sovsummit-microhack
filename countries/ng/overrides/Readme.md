@@ -8,17 +8,25 @@
 
 There is **no Azure region inside Nigeria today**. The closest practical Azure
 region for this edition is **${country.azure.primary_region_display}**
-(`${country.azure.primary_region}`). That means every design has to separate:
+(`${country.azure.primary_region}`), paired with
+**${country.azure.paired_region_display}** (`${country.azure.paired_region}`).
+That means every Nigerian architecture in this repo must be explicit about what
+crosses the border and what stays in-country.
 
-- **Regulated data that must stay in Nigeria** — citizen identity data, KYC,
-  BVN-linked records, cardholder data, and core banking records.
-- **Derived / non-regulated data** that can be lawfully transferred to
-  `${country.azure.primary_region}` after satisfying NDPA cross-border rules.
+### Two valid Nigeria patterns in this edition
 
-The country edition therefore follows the same pattern many Nigerian teams use in
-practice: **Azure Local + Azure Arc inside Nigeria for the regulated tier**, and
-`${country.azure.primary_region}` only for tokenised, de-identified or otherwise
-approved workloads.
+1. **Hybrid sovereign path** — keep regulated workloads, raw identifiers,
+   detokenisation keys and operational break-glass copies on **Azure Local + Arc
+   in Nigeria**, while derived / tokenised workloads use
+   `${country.azure.primary_region}`.
+2. **Sovereign public cloud path** — use `${country.azure.primary_region}` as the
+   main hyperscale region, but still apply **allowed-locations pinning**,
+   **Premium Key Vault HSM-backed CMK**, **Private Link**, and an
+   **in-country tokenisation boundary** for NDPA-restricted fields.
+
+This is deliberate: for countries without an in-country data centre, the answer
+is **not** “Azure Local only.” It is either a hybrid pattern or a sovereign
+public-cloud pattern with stronger policy, key management and data-splitting.
 
 ## Country context
 
@@ -29,7 +37,7 @@ approved workloads.
 | Paired region | `${country.azure.paired_region}` (${country.azure.paired_region_display}) |
 | Primary data-protection law | ${country.regulatory.primary_law} |
 | Breach notification window | ${country.regulatory.breach_notification_hours} hours to the NDPC where risk to rights/freedoms exists |
-| Cross-border transfer | NDPA ss.41-43: adequacy or another lawful transfer basis must be recorded |
+| Cross-border transfer | NDPA ss.41-43 + GAID 2025: document adequacy, an NDPC-approved transfer instrument / SCC-equivalent, or another lawful s.43 basis |
 | Major-controller registration | NDPA s.44 + NDPC 14 Feb 2024 guidance |
 | Regulatory frameworks in scope | ${country.regulatory.frameworks} |
 | Confidential compute SKUs (${country.azure.primary_region}) | ${country.azure.confidential_compute_skus} |
@@ -41,27 +49,28 @@ approved workloads.
 - **Financial services:** ${country.scenarios.financial_tenant}
 
 ### Nigeria-specific notes
-- **NDPA s.41** blocks cross-border transfers unless the destination has
-  adequate protection (per **s.42**) or another basis in **s.43** applies. A
-  Nigerian workload in `${country.azure.primary_region}` is therefore a
-  cross-border transfer by default.
+- **NDPA s.40** requires notification to the **NDPC** within
+  **${country.regulatory.breach_notification_hours} hours** after awareness of a
+  qualifying breach, while affected data subjects must also be informed without
+  undue delay where the risk threshold is high.
+- **NDPA ss.41-43** and **GAID 2025** make a deployment in
+  `${country.azure.primary_region}` a **cross-border transfer posture by
+  default**. Record the destination, legal basis, safeguards, and whether your
+  reliance is on adequacy, an NDPC-recognised transfer instrument, or another
+  lawful **s.43** condition.
 - **NDPA s.44** requires data controllers / processors of major importance to
-  register with the **NDPC** and disclose their DPO, data categories,
-  recipients, destination countries, and safeguards. The NDPC's **14 Feb 2024**
-  guidance makes this especially relevant for public-sector bodies, finance, and
-  organisations processing more than 200 data subjects in six months.
-- **NDPA s.32** requires a DPO for a controller of major importance, and
-  **s.40(2)** requires notification to the NDPC within
-  **${country.regulatory.breach_notification_hours} hours** after becoming aware
-  of a qualifying breach.
+  register with the **NDPC** and disclose their DPO, categories of data,
+  recipients, transfer destinations, and safeguards. The NDPC's **14 Feb 2024**
+  guidance makes this especially relevant for government bodies, finance, and
+  organisations processing more than **200 data subjects in six months**.
 - The **CBN Risk-Based Cybersecurity Framework (2024)** adds bank-specific
   obligations for third-party / cloud risk, monitoring, incident reporting and
   regulatory compliance; the **CBN Shared Services / Outsourcing Guidelines**
   add approval, audit-rights, contract and exit-planning expectations for cloud
   providers.
-- Practical pattern: keep regulated PII and transaction-processing systems on
-  **Azure Local in Nigeria**, project them into Azure through **Azure Arc**, and
-  send only tokenised / de-identified analytics to `${country.azure.primary_region}`.
+- Default design rule: if a field would create an NDPA or CBN problem when sent
+  cross-border, **tokenise or keep it in Nigeria**. `${country.azure.primary_region}`
+  is for approved public-cloud processing, not for uncontrolled raw-data sprawl.
 
 ## Challenges (Nigeria edition order)
 
@@ -73,6 +82,7 @@ approved workloads.
 6. Azure Local + Arc — [`challenges/challenge-06.md`](challenges/challenge-06.md)
 7. **🇳🇬 NDPA cross-border guardrails + NDPC SDCMI registration** — [`challenges/challenge-ng-01-ndpa-cross-border-sdcmi.md`](challenges/challenge-ng-01-ndpa-cross-border-sdcmi.md)
 8. **🇳🇬 CBN-compliant hybrid landing zone with Azure Local + Arc** — [`challenges/challenge-ng-02-cbn-hybrid-azure-local.md`](challenges/challenge-ng-02-cbn-hybrid-azure-local.md)
+9. **🇳🇬 Sovereign public cloud in Johannesburg with in-country tokenisation boundary** — [`challenges/challenge-ng-03-sovereign-public-cloud-johannesburg.md`](challenges/challenge-ng-03-sovereign-public-cloud-johannesburg.md)
 
 ## Attribution
 

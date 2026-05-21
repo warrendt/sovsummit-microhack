@@ -1,92 +1,99 @@
-# Solution — Challenge QA-01 (PDPPL + NIA classification)
+# Solution — Challenge QA-01 (PDPPL + NIA classification and transfer decisioning)
 
 > Walkthrough for `${country.summit_edition}` / Challenge QA-01.
 > Primary region: `${country.azure.primary_region}`.
 
-## 1. Define the taxonomy
+## 1. Build the classification matrix first
 
-Use one mandatory tag set everywhere:
+A good answer starts with the data, not the resources.
 
-| Tag | Allowed values | Why |
+| Dataset / flow | NIA class | PDPPL type | Special-nature? | QCB impact | Region decision | Notes |
+|---|---|---|---|---|---|---|
+| Public service FAQs | Public | non-personal | No | none | `${country.azure.primary_region}` or `${country.azure.paired_region}` | Safe for public replication. |
+| Internal case-routing metadata | Internal | personal | No | none | `${country.azure.primary_region}` by default; `${country.azure.paired_region}` only with approved transfer record | Still personal data; do not move casually. |
+| Citizen profile + national ID | Restricted | personal | No | none | `${country.azure.primary_region}` only | High misuse impact even if not Article 16 special-nature. |
+| Benefits health attachments | Restricted | special-nature | Yes | none | `${country.azure.primary_region}` only | PDPPL Article 16 + stronger technical safeguards. |
+| Complaints + investigation notes | Limited Access or Restricted | personal | Context-dependent | none | `${country.azure.primary_region}` only unless redacted | Usually too sensitive for routine export. |
+| Settlement-bank payment reconciliation | Restricted | personal | Usually No | regulated-payments | `${country.azure.primary_region}` only | QCB 21.4 keeps PII and financial information processed in Qatar. |
+| Tokenised analytics extract | Internal | tokenised | No | supporting | `${country.azure.paired_region}` allowed with register entry | Re-identification keys stay in Qatar. |
+
+## 2. Record the transfer decision
+
+Use a compact register with one row per approved movement:
+
+| transfer-decision-id | Dataset | Destination | Data form | Processor / service | Why allowed | Review date |
+|---|---|---|---|---|---|---|
+| QA-XFER-001 | Public FAQs | `${country.azure.paired_region}` | public | Azure Storage RA copy | Public content only | 12 months |
+| QA-XFER-002 | Tokenised analytics extract | `${country.azure.paired_region}` | tokenised | Azure SQL read replica / Storage | Analytics only; re-identification keys remain in `${country.azure.primary_region}` | 6 months |
+| DENIED | Payment reconciliation | `${country.azure.paired_region}` | raw PII / financial data | N/A | QCB 21.4 requires PII and financial info processing in Qatar | N/A |
+
+## 3. Build the initiative
+
+Bundle these policies into **`Qatar PDPPL + NIA Classification Guardrails`**:
+
+| Policy | Effect | Why |
 |---|---|---|
-| `nia-classification` | `${country.regulatory.classification_scheme}` | Maps every workload to the NIA Policy v2.0 sensitivity level. |
-| `pdppl-data-type` | `non-personal`, `personal`, `special-nature`, `anonymised` | Distinguishes normal personal data from higher-risk PDPPL data. |
-| `data-owner` | ministry / entity name | Supports controller accountability. |
-| `processing-purpose` | approved service identifier | Ties processing to a documented purpose. |
-| `cross-border-adr-id` | ADR / waiver reference | Required before lower-classification data can use `${country.azure.paired_region}`. |
+| Allowed locations | Deny | Base region fence. |
+| Require classification / owner / purpose / transfer tags | Deny | Makes every data workload explain itself. |
+| `QaRestrictedInCountryOnly` | Deny | Forces `Limited Access` / `Restricted` to `${country.azure.primary_region}`. |
+| `QaQcbPaymentsInCountryOnly` | Deny | Blocks regulated payment data outside Qatar. |
+| `QaTransferDecisionRequired` | Deny | `${country.azure.paired_region}` needs a non-empty `transfer-decision-id`. |
+| Storage / SQL CMK enforcement | Deny or DeployIfNotExists | Required for high-impact data stores. |
+| Public network access disabled | Deny | Keeps sensitive services private. |
+| Diagnostics to Qatar workspace | DeployIfNotExists | Keeps the evidence trail in-country. |
 
-## 2. Create the initiative
-
-Bundle these policies into **`Qatar PDPPL + NIA Data Classification`**:
-
-| Policy | Effect | Notes |
-|---|---|---|
-| Allowed locations | Deny | Base allow-list = `${country.azure.primary_region}`, `${country.azure.paired_region}`. |
-| Require tags on resources / resource groups | Deny | Enforces the taxonomy above. |
-| Custom `QaRestrictedInCountryOnly` | Deny | If `nia-classification` is `Limited Access` or `Restricted`, then `location` must be `${country.azure.primary_region}`. |
-| Custom `QaCrossBorderAdrRequired` | Deny | If `location = ${country.azure.paired_region}`, require `cross-border-adr-id` and keep the classification at `Public` or `Internal`. |
-| Storage accounts should use customer-managed key for encryption | DeployIfNotExists | Mandatory for `special-nature` data stores. |
-| SQL should use customer-managed keys | Audit / Deny | Use where the service supports it. |
-| Diagnostic settings to Log Analytics in `${country.azure.primary_region}` | DeployIfNotExists | Keeps audit evidence in-country. |
+## 4. Example assignment flow
 
 ```bash
 az policy set-definition create \
-  --name qa-pdppl-nia \
-  --display-name "Qatar PDPPL + NIA Data Classification" \
+  --name qa-pdppl-nia-guardrails \
+  --display-name "Qatar PDPPL + NIA Classification Guardrails" \
   --management-group mg-sovsummit-qa \
-  --definitions @qa-pdppl-nia.initiative.json \
-  --params '{"allowedLocations":{"value":["${country.azure.primary_region}","${country.azure.paired_region}"]}}'
-```
+  --definitions @qa-pdppl-nia-guardrails.json
 
-## 3. Assign and scope the deny logic
-
-```bash
 az policy assignment create \
-  --name qa-pdppl-nia-assignment \
-  --policy-set-definition qa-pdppl-nia \
+  --name qa-pdppl-nia-guardrails \
+  --policy-set-definition qa-pdppl-nia-guardrails \
   --scope /providers/Microsoft.Management/managementGroups/mg-sovsummit-qa \
-  --mi-system-assigned \
-  --location ${country.azure.primary_region}
-```
-
-Grant the managed identity rights to remediate diagnostics and CMK baselines.
-
-## 4. Provision the CMK vault
-
-```bash
-az keyvault create \
-  --name kv-sovsummit-qa-$RANDOM \
-  --resource-group rg-qa-platform \
   --location ${country.azure.primary_region} \
-  --sku ${country.azure.cmk_hsm_sku} \
-  --enable-purge-protection true \
-  --enable-rbac-authorization true
+  --mi-system-assigned
 ```
 
-Use this vault for any storage or SQL resource tagged `pdppl-data-type=special-nature`.
-
-## 5. Verify the deny paths
+## 5. Negative tests you should run
 
 ```bash
-# Should be denied: restricted data outside Qatar Central
+# Denied: restricted workload in UAE North
 az group create -n rg-qa-restricted-dr -l ${country.azure.paired_region} \
-  --tags nia-classification=Restricted pdppl-data-type=personal data-owner=MCIT processing-purpose=citizen-portal cross-border-adr-id=NA
+  --tags nia-classification=Restricted pdppl-data-type=personal \
+         data-owner=MCIT processing-purpose=citizen-portal \
+         transfer-decision-id=QA-XFER-999 qcb-impact=none
 
-# Should be denied: missing required tags
-az storage account create -n stqamissingtags -g rg-qa-platform -l ${country.azure.primary_region} --sku Standard_LRS
+# Denied: payment-regulated data outside Qatar
+az storage account create -n stqapaydr$RANDOM -g rg-qa-dr -l ${country.azure.paired_region} \
+  --tags nia-classification=Restricted pdppl-data-type=personal \
+         data-owner=BankOps processing-purpose=payments-dr \
+         transfer-decision-id=QA-XFER-888 qcb-impact=regulated-payments
 
-# Compliance view
-az policy state list --management-group mg-sovsummit-qa \
-  --filter "ComplianceState eq 'NonCompliant'" -o table
+# Allowed only with decision record: tokenised analytics
+az group create -n rg-qa-analytics-dr -l ${country.azure.paired_region} \
+  --tags nia-classification=Internal pdppl-data-type=tokenised \
+         data-owner=MCIT processing-purpose=analytics \
+         transfer-decision-id=QA-XFER-002 qcb-impact=none
 ```
 
-## 6. Evidence pack
+## 6. Evidence mapping
 
-Create a short matrix:
+- **PDPPL Articles 12–14** → controller / processor safeguards and breach handling.
+- **PDPPL Article 16** → special-nature data approval and extra precautions.
+- **National Information Assurance Standard v2.1 + National Data Classification Policy** → classification-driven control scaling.
+- **QCB Cloud Computing Regulation 20 and 21** → key management, least privilege, segregation, private handling and in-Qatar processing of PII / financial data.
 
-- `nia-classification` + location deny → NIA v2.0 classification handling.
-- `pdppl-data-type` + CMK/private endpoint requirements → PDPPL security obligations.
-- `processing-purpose` → purpose limitation and processing records.
-- `cross-border-adr-id` → executive-regulation transfer governance.
+## 7. What “good” looks like
 
-Include the regulator portal in the evidence README: `${country.regulatory.primary_regulator_url}`.
+A strong submission does **not** say “everything is restricted and must stay in Qatar.”
+It shows that you can:
+
+- distinguish public, internal, restricted and tokenised flows,
+- justify why some lower-risk or transformed data can move,
+- prove why raw payment or special-nature data cannot,
+- convert that reasoning into enforceable Azure Policy.

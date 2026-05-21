@@ -5,8 +5,8 @@ language: en
 
 azure:
   # No in-country Azure region yet (mid-2026). UAE North is the closest hyperscale
-  # region; CBE-regulated and PDPL-regulated workloads typically stay on-premises
-  # via Azure Local + Arc, with UAE North used only for non-regulated/derived data.
+  # region; use it for PDPL-permitted / non-Egypt-resident data with strong
+  # sovereign controls, while data that must remain in Egypt stays on Azure Local.
   primary_region: uaenorth
   primary_region_display: UAE North (closest hyperscale region to Egypt)
   paired_region: uaecentral
@@ -51,3 +51,4 @@ sponsor:
 extra_challenges:
   - challenge-eg-01-pdpc-cross-border-permit
   - challenge-eg-02-hybrid-cbe-azure-local
+  - challenge-eg-03-sovereign-public-cloud-uaenorth

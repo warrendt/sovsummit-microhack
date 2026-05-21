@@ -167,7 +167,7 @@ az group create --name $ResourceGroupName --location $Location | Out-Null
 
 # Apply CostControl=Ignore tag at the RG scope (prep guide pages 11-12).
 if ($TagCostControlIgnore) {
-    Write-Host "Tagging resource group with CostControl=Ignore (prevents MCAPS governance auto-shutdown)..." -ForegroundColor Cyan
+    Write-Host "Tagging resource group with CostControl=Ignore (prevents subscription governance auto-shutdown)..." -ForegroundColor Cyan
     az tag update --resource-id (az group show -n $ResourceGroupName --query id -o tsv) `
                   --operation merge --tags CostControl=Ignore | Out-Null
 }

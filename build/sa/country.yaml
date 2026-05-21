@@ -21,27 +21,28 @@ azure:
   arc_region: saudiarabiaeast
 
 regulatory:
-  primary_law: Personal Data Protection Law (PDPL) — Royal Decree M/19 of 1443 AH
-  enforcement_status: In force with implementing regulations since September 2024
+  primary_law: Personal Data Protection Law (PDPL) — Royal Decree M/19 dated 9/2/1443 AH
+  enforcement_status: In force since 14 September 2023; the one-year compliance grace period ended on 14 September 2024
   primary_regulator: Saudi Data & AI Authority (SDAIA)
   public_sector_cyber_regulator: National Cybersecurity Authority (NCA)
   financial_sector_regulator: Saudi Central Bank (SAMA)
-  regulator_split: "SDAIA governs personal data, NCA sets national cyber controls for government and critical sectors, and SAMA adds sector-specific cloud and cyber obligations for regulated financial institutions."
-  cross_border_transfer_model: "Transfers outside the Kingdom require a lawful basis, a transfer risk assessment, and an SDAIA-approved safeguard mechanism such as adequacy, SCCs, BCRs, or another permitted exception."
+  regulator_split: "SDAIA administers PDPL and transfer rules, NCA sets the national cyber baseline for government and critical sectors, and SAMA layers sector-specific cyber, outsourcing, cloud, audit, and exit obligations onto regulated financial institutions."
+  cross_border_transfer_model: "Transfers outside the Kingdom must satisfy PDPL Article 29 and SDAIA's transfer regulation: assess destination risk, use an approved safeguard such as SCCs or BCRs when no adequacy decision exists, and obtain regulator approval where sector rules require it."
   frameworks:
     - PDPL + Implementing Regulations
     - SDAIA Regulation on Personal Data Transfer Outside the Kingdom
-    - SAMA Cyber Security Framework v1.0
-    - NCA Essential Cybersecurity Controls (ECC-1:2018)
-    - NCA Cloud Cybersecurity Controls (CCC-1:2020)
+    - SAMA Cyber Security Framework (Rulebook)
+    - SAMA cloud computing / third-party requirements (Rulebook §3.4)
+    - NCA Essential Cybersecurity Controls (ECC-2:2024)
+    - NCA Cloud Cybersecurity Controls (CCC-2:2024)
     - NCA Critical Systems Cybersecurity Controls (CSCC-1:2019)
   regulator_links:
-    - name: Saudi Data & AI Authority (SDAIA)
-      url: https://sdaia.gov.sa/
-    - name: Saudi Central Bank (SAMA)
-      url: https://rulebook.sama.gov.sa/
+    - name: SDAIA / Personal Data Protection resources
+      url: https://dgp.sdaia.gov.sa/wps/portal/pdp/knowledgecenter/
+    - name: Saudi Central Bank (SAMA) Rulebook
+      url: https://rulebook.sama.gov.sa/en/
     - name: National Cybersecurity Authority (NCA)
-      url: https://nca.gov.sa/en/
+      url: https://nca.gov.sa/en/regulatory-documents/
 
 scenarios:
   public_sector_tenant: "A Saudi Vision 2030 government entity operating a national licensing and permits platform"

@@ -107,14 +107,14 @@ documented workaround* in your country's `Readme.md`).
 
 ---
 
-## 8. Coach-only: live event prep (PDF pp.5-12)
+## 8. Coach-only: live event prep 
 
-These steps map 1:1 to the upstream `Microhack_Prep.pdf` and are wired into
+These steps map 1:1 to the upstream live-event prep guide and are wired into
 `build/${country.iso2}/bootstrap/build-${country.iso2}.sh --coach` for South
 Africa. Other editions can run the same helpers manually from
 `build/<iso2>/resources/preparation-helpers/`.
 
-### 8.1 Security group + Conditional Access (PDF pp.5-6)
+### 8.1 Security group + Conditional Access 
 
 - Helper: `preparation-helpers/New-SummitSecurityGroup.ps1` — creates the parent
   **Microhack Sovereignty Summit** group and nests `LabUsers` + `AdminUsers`.
@@ -139,7 +139,7 @@ The prep guide calls for:
 If your Challenge 4 (Confidential Compute) attendees need the Esv6 hardware,
 file an Esv6 quota request manually via the portal before the event.
 
-### 8.3 ArcBox + LocalBox demo VMs (PDF pp.9-11)
+### 8.3 ArcBox + LocalBox demo VMs 
 
 For Challenges 5 & 6 the coach typically deploys two reference environments:
 
@@ -158,9 +158,9 @@ Wired flags (ZA): `--deploy-arcbox`, `--deploy-localbox`,
 `--arcbox-location`, `--localbox-location`, `--azure-local-instance-location`,
 `--demo-admin-username`.
 
-### 8.4 Cost-control tagging (PDF pp.11-12)
+### 8.4 Cost-control tagging 
 
-MCAPS subscriptions auto-shutdown VMs unless tagged `CostControl=Ignore`.
+Some governed Azure subscriptions auto-shutdown VMs unless tagged `CostControl=Ignore`.
 The deploy scripts apply the tag at the RG scope automatically; the coach
 must apply it to **the deployed VM** after the Bicep deploy finishes and
 delete the auto-shutdown schedule:
@@ -177,7 +177,7 @@ az resource delete -g rg-arcbox \
 `deploy-arcbox.ps1` / `deploy-localbox.ps1` print these exact commands when
 their deploys finish.
 
-### 8.5 What this costs (PDF pp.12-13)
+### 8.5 What this costs 
 
 A full Sov-Cloud MicroHack runs **~1000 USD per event** with 30 attendees over
 two days. The bulk is ArcBox + LocalBox + Confidential Compute SKUs. Tear down

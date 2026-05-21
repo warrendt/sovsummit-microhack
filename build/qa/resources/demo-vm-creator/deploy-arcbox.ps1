@@ -80,9 +80,9 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$SshRSAPublicKey = "",
 
-    # Tag every resource in the RG with CostControl=Ignore so the MCAPS
-    # governance automation does not auto-shutdown the demo VMs (prep guide
-    # pages 11-12). Default: $true for live events.
+    # Tag every resource in the RG with CostControl=Ignore so the subscription
+    # governance automation does not auto-shutdown the demo VMs. Default:
+    # $true for live events.
     [Parameter(Mandatory = $false)]
     [bool]$TagCostControlIgnore = $true,
 
@@ -129,7 +129,7 @@ az group create --name $ResourceGroupName --location $Location | Out-Null
 
 # Apply CostControl=Ignore tag at the RG scope (prep guide pages 11-12).
 if ($TagCostControlIgnore) {
-    Write-Host "Tagging resource group with CostControl=Ignore (prevents MCAPS governance auto-shutdown)..." -ForegroundColor Cyan
+    Write-Host "Tagging resource group with CostControl=Ignore (prevents subscription governance auto-shutdown)..." -ForegroundColor Cyan
     az tag update --resource-id (az group show -n $ResourceGroupName --query id -o tsv) `
                   --operation merge --tags CostControl=Ignore | Out-Null
 }

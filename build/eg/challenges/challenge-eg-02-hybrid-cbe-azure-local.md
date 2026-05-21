@@ -4,70 +4,125 @@
 > **Edition:** Sovereignty Summit Egypt 2026
 > **Closest Azure region:** `uaenorth` (UAE North (closest hyperscale region to Egypt))
 
-## Scenario
+## The situation
 
 You are the chief architect for **An Egyptian tier-1 bank operating mobile wallets under CBE cloud rules**.
-CBE has approved your cloud strategy on one condition: **all customer
-financial PII and core banking data must reside on infrastructure physically
-located inside Egypt**. Non-PII analytics and DR replicas may run in
-`uaenorth` under a PDPC cross-border permit.
+The bank wants public-cloud elasticity, but the regulatory boundary is clear:
+**customer financial PII, core banking records, token vaults, and the
+re-identification path must remain physically in Egypt**.
 
-You will build a **two-tier hybrid landing zone**:
+This challenge is therefore the **Azure Local path** for Egypt. It stays in the
+edition on purpose: when a workload or field set must remain in-country,
+sovereign public cloud controls alone are **not enough**.
 
-- **Regulated tier (on-prem in Cairo / Alexandria):** Azure Local (formerly
-  Azure Stack HCI) cluster running the wallet-issuance services and customer
-  database. Projected to Azure as Arc-enabled resources.
-- **Non-regulated tier (`uaenorth`):** Tokenised
-  analytics warehouse, model training, and DR copies of de-identified data
-  protected by CMK in a **Premium** Key Vault.
+Your target architecture is a two-tier hybrid landing zone:
+
+- **Regulated in-country tier:** Azure Local clusters in Egypt, projected into
+  Azure through **Azure Arc**, hosting the core banking systems, token vault,
+  and any de-tokenisation or re-identification services.
+- **Permitted external tier:** `uaenorth` for tokenised or
+  derived analytics, resiliency services, and non-regulated telemetry under a
+  PDPC-approved transfer model.
+
+## Your mission
+
+Build the **CBE-ready hybrid landing zone** that proves the bank can keep the
+sensitive tier in Egypt while still consuming public-cloud services for the
+allowed data classes.
+
+## Learning objectives
+
+By the end of this challenge you should be able to:
+
+- Explain why **Azure Local** is the right answer for some Egyptian workloads
+  even when `uaenorth` is available nearby.
+- Onboard an Azure Local environment into Azure Arc and treat the in-country
+  estate as part of one governance plane.
+- Design a tokenisation pipeline where the **vault, detokenisation logic, and
+  key custody remain in Egypt**.
+- Split telemetry and control evidence between in-country systems and the public
+  cloud without weakening the sovereignty story.
 
 ## Objectives
 
-- Deploy a 2-node **Azure Local** cluster (simulated; use the
-  `common/resources/demo-vm-creator/deploy-localbox.ps1` LocalBox to stand up
-  a nested-virtualised lab) and register it with Azure Arc.
-- Onboard at least one workload VM and one AKS-on-Azure-Local cluster as
-  Arc-enabled resources; verify they appear in the `uaenorth`
-  resource group.
-- Build a **CMK pipeline**: tokeniser running on the on-prem cluster strips
-  customer PII before pushing to a storage account in
-  `uaenorth` whose encryption key lives in a
-  Premium Key Vault, with the **wrapping key** never leaving Egypt
-  (Managed HSM exported via BYOK or held in an on-prem HSM).
-- Apply an **Azure Policy** initiative `CBE Hybrid Landing Zone` that:
-  - Denies storage accounts in the regulated subscription unless `encryption.keySource = Microsoft.Keyvault`.
-  - Denies any compute resource not tagged `cbe-tier=regulated` from being deployed in `uaenorth`.
-  - Audits Arc-enabled servers missing the `azure-arc-eg-data-centre` tag.
-- Wire **Azure Monitor** to a Log Analytics workspace in
-  `uaenorth` (allowed under CBE for non-regulated
-  telemetry) **plus** a local Arc-enabled MMA → on-prem SIEM for regulated
-  telemetry.
+- Stand up a 2-node **Azure Local** cluster (lab / simulated) and register it
+  with Azure Arc.
+- Onboard at least one VM and one AKS-on-Azure-Local or containerised workload
+  as Arc-enabled resources.
+- Keep the **token vault and re-identification service in Egypt** on Azure Local;
+  export only tokenised or derived data to `uaenorth`.
+- Apply an initiative named **`CBE Hybrid Landing Zone`** that:
+  - denies regulated data services in `uaenorth` unless the
+    dataset is tagged as tokenised / derived;
+  - denies storage without `encryption.keySource = Microsoft.Keyvault`;
+  - audits Arc-enabled machines missing in-country location metadata;
+  - enforces a clear `cbe-tier` split between `regulated`, `derived`, and
+    `management` assets.
+- Route regulated telemetry to an **in-country SIEM** and non-regulated
+  telemetry to a workspace in `uaenorth`.
 
 ## Success criteria
 
-- [ ] `az connectedmachine list -g rg-eg-arc` shows at least the regulated
-      tier VMs as `Connected`.
-- [ ] Attempting `az storage account create -l uaenorth` with the
-      `cbe-tier=regulated` tag is **denied** by policy.
-- [ ] Customer PII written via the tokeniser appears in
-      `uaenorth` storage as tokens only; reversing
-      requires the on-prem HSM (demonstrate by deliberately blocking egress).
-- [ ] DR replica restore drill: spin up a temporary VM in
-      `uaecentral` from a tokenised backup and verify it
-      cannot resolve the original PII.
-- [ ] Compliance evidence pack maps each control back to CBE Cloud Computing
-      Framework sections + PDPL Article numbers.
+- [ ] `az connectedmachine list -g rg-eg-arc` shows the in-country tier machines
+      as `Connected`.
+- [ ] A workload tagged `cbe-tier=regulated` is **denied** if someone tries to
+      place it directly in `uaenorth`.
+- [ ] The token vault / re-identification service remains reachable only from the
+      in-country Azure Local tier.
+- [ ] Data exported to `uaenorth` appears as tokens,
+      masked values, or derived aggregates only.
+- [ ] A DR restore drill in `uaecentral` proves the backup is
+      operationally useful but cannot reveal original customer identity without
+      the in-country token vault.
+- [ ] Your evidence pack maps each control back to the CBE Cloud Computing
+      Framework and PDPL obligations.
 
-## Hints
+## Guiding questions
 
-- Start from `common/resources/demo-vm-creator/deploy-localbox.ps1` (set
-  `-AzureLocalInstanceLocation uaenorth` so the
-  registration plane lives near the lab).
-- For tokenisation, an open-source option such as `Microsoft Presidio`
-  running on the on-prem AKS cluster is sufficient for the lab.
-- The `Azure Arc-enabled data services` policy initiative is a useful
-  baseline to extend.
-- Reference: {'name': 'Personal Data Protection Center (PDPC)', 'url': 'https://pdpc.gov.eg/'}, {'name': 'Central Bank of Egypt', 'url': 'https://www.cbe.org.eg/'}, {'name': 'National Telecommunications Regulatory Authority (NTRA)', 'url': 'https://www.tra.gov.eg/'}.
+- What is the difference between **keeping the encryption key in Egypt** and
+  **keeping the identifiable data in Egypt**? Which requirement is stricter?
+- If a data scientist says they only need analytics in `uaenorth`,
+  what technical proof will you require before letting any dataset leave Egypt?
+- Is it enough to tokenise in transit, or must the token vault and re-ID path
+  also remain in-country? Why?
+- Which telemetry can safely go to `uaenorth`, and which
+  telemetry itself becomes regulated because it carries identifiers or business
+  secrets?
 
-## Estimated duration
-120 minutes.
+## Egypt-specific pitfalls
+
+- **Do not let the token vault drift to cloud:** once detokenisation or the
+  master mapping table leaves Egypt, the whole hybrid design collapses.
+- **Arc is a control plane, not a residency bypass:** Arc visibility does not
+  mean the workload has moved to Azure; your evidence should make that explicit.
+- **Derived-data sprawl:** once teams see `uaenorth` as
+  available, they may start copying semi-raw data there. Force tagging and deny
+  controls before that happens.
+- **Key-wrapping story:** if you use BYOK or HSM-backed wrapping, document which
+  key material never leaves Egypt and who controls destruction / recovery.
+
+## Data-placement baseline
+
+| Data / service | Default location | Rationale |
+|---|---|---|
+| Core banking records, customer master, account identifiers | Azure Local in Egypt | High-regulation, must remain in-country. |
+| Token vault, detokenisation service, HSM-backed master keys | Azure Local in Egypt | Re-identification boundary stays in-country. |
+| Tokenised analytics events, derived fraud features, masked reporting extracts | `uaenorth` | Cross-border only after tokenisation / permit. |
+| DR copies of tokenised backups | `uaecentral` | Operational resilience without exposing raw identity. |
+
+## Regulatory anchors
+
+- PDPL Law 151 of 2020
+- Executive Regulations — Ministerial Decree 816 of 2025
+- Central Bank of Egypt: <https://www.cbe.org.eg/>
+- Personal Data Protection Centre (PDPC): <https://pdpc.gov.eg/>
+
+## Stretch goals
+
+- Add Azure Policy exemptions that require both `pdpc-permit-id` and
+  `tokenisation-pattern=approved` before a derived dataset may land in
+  `uaenorth`.
+- Project the token vault health and Arc machine posture into one workbook for
+  the bank CISO.
+- Extend the design with an exit / repatriation runbook showing how derived data
+  feeds are cut off if the PDPC permit or CBE approval is withdrawn.

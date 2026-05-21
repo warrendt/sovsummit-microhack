@@ -3,88 +3,120 @@
 > Walkthrough for `${country.summit_edition}` / Challenge AE-01.
 > Primary region: `${country.azure.primary_region}`.
 
-## 1. Create the landing-zone hierarchy
+## 1. Start with the decision tree, not the subnet
+
+For each processing boundary, answer these questions in order:
+
+1. Is this a **government authority / government-data** case?
+   - If yes, route to `public-sector-exception` and capture the governing law or
+     mandate outside the federal PDPL flow.
+2. If not, is the controller / processor **established in DIFC**?
+   - If yes, route to `difc`.
+3. If not, is the controller / processor **established in ADGM**?
+   - If yes, route to `adgm`.
+4. If not, treat it as **onshore federal PDPL**.
+5. Add the **sector overlay** (`cbuae-bank`, `dha-health`, `tdra-telecom`, or
+   `none`).
+6. Confirm data stays in `${country.azure.primary_region}` or
+   `${country.azure.paired_region}`. If it crosses legal perimeters, open an
+   inter-perimeter transfer review even if the Azure region does not change.
+
+## 2. Create the landing-zone hierarchy
 
 ```bash
 az account management-group create --name mg-sovsummit-ae --display-name "Sovereignty Summit UAE"
-az account management-group create --name mg-ae-onshore --display-name "UAE Onshore / Federal PDPL" --parent mg-sovsummit-ae
+az account management-group create --name mg-ae-federal --display-name "UAE Federal PDPL" --parent mg-sovsummit-ae
 az account management-group create --name mg-ae-difc --display-name "DIFC" --parent mg-sovsummit-ae
 az account management-group create --name mg-ae-adgm --display-name "ADGM" --parent mg-sovsummit-ae
+az account management-group create --name mg-ae-exceptions --display-name "UAE Exceptions / Government Data" --parent mg-sovsummit-ae
 ```
 
-Attach the three lab subscriptions (or RG-backed lab scopes) so each regulatory
-regime has a dedicated boundary.
+Attach subscriptions (or lab scopes) so each legal perimeter has a clean
+administrative boundary.
 
-## 2. Define the classification taxonomy
-
-Minimum tags:
+## 3. Define the mandatory classification model
 
 | Tag | Allowed values | Why |
 |---|---|---|
-| `uae-regulatory-regime` | `federal-pdpl`, `difc`, `adgm` | Determines which law and regulator apply. |
-| `data-classification` | `public`, `internal`, `confidential`, `restricted` | Drives control depth. |
-| `data-controller` | legal entity name | Makes the responsible controller visible. |
-| `exception-ticket` | change / legal approval ID | Required only for approved exceptions. |
+| `uae-regulatory-regime` | `federal-pdpl`, `difc`, `adgm`, `public-sector-exception` | Primary perimeter |
+| `sector-overlay` | `none`, `cbuae-bank`, `dha-health`, `tdra-telecom` | Overlay regulator |
+| `data-controller` | legal entity / authority name | Controller visibility |
+| `data-processing-establishment` | `onshore`, `difc`, `adgm`, `government` | Encodes the decision-tree result |
+| `interperimeter-transfer` | `yes`, `no` | Flags perimeter crossing |
+| `exception-ticket` | approved legal / change reference | Required for exceptions |
 
-## 3. Build the `UAE Jurisdiction Routing` initiative
+## 4. Build the `UAE Jurisdiction Routing` initiative
 
 Recommended bundle:
 
 | Policy | Effect | Why |
 |---|---|---|
-| Allowed locations | Deny | Keep all workloads in `${country.azure.primary_region}` or `${country.azure.paired_region}`. |
-| Allowed locations for resource groups | Deny | Prevent RG drift. |
-| Require a tag on resources | Deny | Force `uae-regulatory-regime`, `data-classification`, `data-controller`. |
-| Custom policy: regime tag must match landing-zone scope | Deny | Prevent DIFC / ADGM workloads from landing in the wrong legal perimeter. |
-| Diagnostic settings to Log Analytics in `${country.azure.primary_region}` | DeployIfNotExists | Preserve auditable policy evidence in-country. |
+| Allowed locations | Deny | Keep workloads in `${country.azure.primary_region}` or `${country.azure.paired_region}` |
+| Allowed locations for resource groups | Deny | Stop RG drift |
+| Require mandatory tags | Deny | Force classification at create time |
+| Custom policy: regime tag must match management-group scope | Deny | Prevent DIFC / ADGM / federal mix-ups |
+| Custom policy: `public-sector-exception` requires `exception-ticket` | Deny | Forces legal sign-off |
+| Custom policy: `interperimeter-transfer=yes` requires approved scope / tag | Audit or Deny | Makes perimeter crossing visible |
+| Diagnostic settings to in-country Log Analytics | DeployIfNotExists | Keeps evidence in the UAE |
 
 ```bash
-az policy set-definition create
-  --name uae-jurisdiction-routing
-  --display-name "UAE Jurisdiction Routing"
-  --management-group mg-sovsummit-ae
+az policy set-definition create \
+  --name uae-jurisdiction-routing \
+  --display-name "UAE Jurisdiction Routing" \
+  --management-group mg-sovsummit-ae \
   --definitions @uae-jurisdiction-routing.initiative.json
-  --params '{"allowedLocations":{"value":["${country.azure.primary_region}","${country.azure.paired_region}"]}}'
 ```
 
-## 4. Assignment pattern
+## 5. Assignment pattern
 
-Assign the initiative at `mg-sovsummit-ae` and pass a parameter map that binds
-regime values to the expected management-group IDs:
+Pass the expected scope bindings as initiative parameters:
 
 ```json
 {
-  "federalMgmtGroup": {"value": "mg-ae-onshore"},
+  "federalMgmtGroup": {"value": "mg-ae-federal"},
   "difcMgmtGroup":    {"value": "mg-ae-difc"},
-  "adgmMgmtGroup":    {"value": "mg-ae-adgm"}
+  "adgmMgmtGroup":    {"value": "mg-ae-adgm"},
+  "exceptionMgmtGroup":{"value": "mg-ae-exceptions"}
 }
 ```
 
-That lets one custom policy evaluate **tag + scope** together.
+This lets one custom policy evaluate **tag + scope + exception status**
+together.
 
-## 5. Verify the deny paths
+## 6. Verify the deny paths
 
 ```bash
 # Wrong region: should fail
 az group create -n rg-ae-wrong-region -l westeurope
 
-# Wrong legal perimeter: should fail in the onshore scope
-az deployment group create -g rg-onshore-app
-  --template-file main.bicep
-  --parameters uaeRegulatoryRegime=difc dataClassification=confidential
+# Wrong legal perimeter: should fail in the federal scope
+az deployment sub create \
+  --location ${country.azure.primary_region} \
+  --template-file main.bicep \
+  --parameters uaeRegulatoryRegime=difc dataProcessingEstablishment=difc
 
-az policy state list --management-group mg-sovsummit-ae
+# Missing exception ticket: should fail
+az deployment sub create \
+  --location ${country.azure.primary_region} \
+  --template-file main.bicep \
+  --parameters uaeRegulatoryRegime=public-sector-exception dataProcessingEstablishment=government
+```
+
+Review policy state:
+
+```bash
+az policy state list --management-group mg-sovsummit-ae \
   --filter "ComplianceState eq 'NonCompliant'" -o table
 ```
 
-## 6. Regulator evidence matrix
+## 7. Evidence matrix example
 
-For each app / dataset, capture:
+| Workload | Establishment | Perimeter | Overlay | Azure scope | Transfer review? |
+|---|---|---|---|---|---|
+| Citizen-services API | Onshore | Federal PDPL | None / TDRA | `mg-ae-federal` | No |
+| Refunds / escrow service | DIFC | DIFC DP Law | `cbuae-bank` if applicable | `mg-ae-difc` | Yes |
+| Fraud analytics workspace | ADGM | ADGM DPR 2021 | None | `mg-ae-adgm` | Yes |
+| Government records archive | Government | Public-sector exception | None | `mg-ae-exceptions` | Legal review |
 
-1. **Controller / processor establishment** (onshore, DIFC, ADGM).
-2. **Applicable law** (PDPL, DIFC DP Law, ADGM DPR).
-3. **Sector overlay** (CBUAE, DHA, government security baseline).
-4. **Approved region set** (`${country.azure.primary_region}`, `${country.azure.paired_region}`).
-5. **Exception record** if data crosses a legal perimeter.
-
-That matrix is what your legal team reviews before onboarding a workload.
+The crucial lesson: **Azure region choice controls residency; legal
+establishment controls the governing law. You must prove both.**

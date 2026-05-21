@@ -1,73 +1,160 @@
-# Challenge AE-02 — Confidential AKS + CMK for a DIFC-licensed bank
+# Challenge AE-02 — Confidential AKS + CMK for a CBUAE-regulated bank
 
 > **Country:** ${country.name}
 > **Edition:** ${country.summit_edition}
 > **Primary region:** `${country.azure.primary_region}` (${country.azure.primary_region_display})
 > **Paired region:** `${country.azure.paired_region}` (${country.azure.paired_region_display})
 
-## Scenario
+## The situation
 
 You are the cloud security architect for **${country.scenarios.financial_tenant}**.
-The bank wants its next digital-onboarding and payments release to run fully in
-`${country.azure.primary_region}` while satisfying three parallel expectations:
+The bank is rolling out a new digital-onboarding, sanctions-screening and
+payments platform. The board will approve Azure only if you can prove the
+landing zone satisfies a UAE-banking control story equivalent in depth to the
+bank's GCC peers:
 
-1. **DIFC Data Protection Law** for personal-data handling inside the DIFC
-   legal perimeter.
-2. **CBUAE Consumer Protection Regulation / Standards** for customer data,
-   outsourcing controls and complaints evidence.
-3. **UAE IAS** control expectations for key management, logging and privileged
-   access.
+1. **Customer PII, KYC documents, complaints evidence and payment-support data
+   stay in the UAE** — primary processing in `${country.azure.primary_region}`.
+2. **Decrypted regulated workloads run only on confidential-computing
+   infrastructure**.
+3. **Customer-managed keys stay under bank control** in an HSM-backed Key Vault
+   in `${country.azure.primary_region}`.
+4. **CBUAE cloud / outsourcing controls** are evidenced for governance,
+   materiality, data protection, auditability, business continuity and exit.
 
-The board has approved Azure only if the sensitive onboarding and fraud-scoring
-workloads run on **confidential-computing infrastructure**, with customer-
-managed keys kept in a **Premium Key Vault** in `${country.azure.primary_region}`.
+This is an onshore **CBUAE-regulated** bank scenario. If the bank also books
+business through DIFC or ADGM entities, that becomes a separate legal-perimeter
+question; the core banking platform in this challenge answers to the CBUAE.
 
-## Objectives
+## Your mission
 
-- Deploy an **AKS cluster** in `${country.azure.primary_region}` with at least
-  one **confidential node pool** using a supported SKU from
+Build a production-grade **Confidential AKS landing zone** in
+`${country.azure.primary_region}` and produce an evidence pack a risk committee,
+internal audit or regulator would recognize.
+
+## Learning objectives
+
+By the end of this challenge you should be able to:
+
+- Deploy AKS with a confidential node pool based on a supported SKU from
   `${country.azure.confidential_compute_skus}`.
-- Store CMK material in a **Premium Key Vault** in `${country.azure.primary_region}`
-  and use it for the storage layer that persists onboarding documents,
-  screening results and payment-support evidence.
-- Mount secrets into the workloads through the **Key Vault CSI provider** and
-  keep signing / encryption keys outside application containers.
-- Enforce an Azure Policy initiative **`DIFC Confidential Banking Baseline`**
-  that requires:
-  - allowed locations = `${country.azure.primary_region}` and
-    `${country.azure.paired_region}`;
-  - confidential-compute node pools for namespaces tagged
-    `banking-tier=regulated`;
-  - CMK-backed storage and purge protection on the Key Vault;
-  - diagnostic settings flowing to a banking security workspace in
-    `${country.azure.primary_region}`.
-- Produce an evidence pack for internal audit showing that decrypted customer
-  data is processed only inside confidential nodes and that key custody remains
-  in-country.
+- Protect the platform with a `${country.azure.cmk_hsm_sku}` Key Vault,
+  HSM-backed key rotation, CMK-backed storage, and CMK-backed disk encryption
+  where applicable.
+- Use workload identity + Key Vault CSI so secrets and certificates stay outside
+  containers and under central key custody.
+- Map Azure design choices to **CBUAE** control themes: governance,
+  materiality, data protection, auditability, resiliency, and exit planning.
+
+## Build requirements
+
+Create a landing zone with at least these components:
+
+- Resource groups for `network`, `security`, `platform`, and `apps`, all in
+  `${country.azure.primary_region}`.
+- A **private AKS cluster** in `${country.azure.primary_region}` with:
+  - one standard system node pool;
+  - one confidential user node pool using an approved SKU;
+  - taints / labels such as `banking-tier=regulated` so regulated namespaces can
+    only run on the confidential pool.
+- A `${country.azure.cmk_hsm_sku}` Key Vault in `${country.azure.primary_region}`
+  with:
+  - RBAC authorization enabled;
+  - purge protection enabled;
+  - soft delete retention of at least 90 days;
+  - at least one HSM-backed key with a documented rotation policy.
+- A **Disk Encryption Set** and at least one **CMK-backed storage account** for
+  KYC documents, onboarding evidence and complaints records.
+- **Key Vault CSI / workload identity** integration for app secrets,
+  certificates and signing material.
+- Diagnostic settings for AKS, Key Vault, Storage and Azure Policy into a bank
+  security workspace in `${country.azure.primary_region}`.
+
+## Policy initiative
+
+Build an initiative named **`CBUAE Confidential Banking Baseline`** that
+combines built-in and custom policies to enforce:
+
+- allowed locations = `${country.azure.primary_region}` and
+  `${country.azure.paired_region}` only;
+- AKS must be **private** and use Azure RBAC / managed identity;
+- namespaces or workloads tagged `banking-tier=regulated` must land only on the
+  confidential node pool;
+- Storage accounts and managed disks for regulated workloads must use CMK;
+- Key Vault must use `${country.azure.cmk_hsm_sku}`, RBAC, soft delete and
+  purge protection;
+- public network access is disabled for regulated data services where the
+  service supports it;
+- diagnostic settings flow to the in-country security workspace.
+
+## CBUAE control themes you must evidence
+
+Map your design to these control families:
+
+| CBUAE theme | What to evidence in Azure |
+|---|---|
+| Governance | Named landing-zone owner, approved architecture, separation of duties |
+| Materiality & risk assessment | Why onboarding / payments are material cloud arrangements |
+| Data protection | CMK, private networking, workload identity, confidential compute |
+| Auditability | Diagnostic settings, policy state, immutable deployment records |
+| Business continuity | `${country.azure.paired_region}` for DR design, documented failover constraints |
+| Exit planning | Backup / restore, image portability, key escrow / revocation procedures |
+| Consumer data protection | How complaints evidence and customer records remain protected and retrievable |
 
 ## Success criteria
 
 - [ ] `az aks show` confirms the cluster is in `${country.azure.primary_region}`
       and includes a confidential node pool.
-- [ ] `az keyvault show` confirms `sku.name = ${country.azure.cmk_hsm_sku}` and
-      `properties.enablePurgeProtection = true`.
-- [ ] A regulated workload cannot schedule onto a non-confidential node pool.
-- [ ] A storage account or disk created without CMK is denied by policy.
-- [ ] Your walkthrough demonstrates how the bank would evidence DIFC + CBUAE +
-      UAE IAS alignment to an auditor.
+- [ ] `kubectl get nodes -L banking-tier` (or equivalent) shows the regulated
+      pool labeled for confidential workloads.
+- [ ] `az keyvault show` confirms `${country.azure.cmk_hsm_sku}`, RBAC, purge
+      protection and in-country placement.
+- [ ] A storage account for KYC / onboarding evidence reports
+      `encryption.keySource = Microsoft.Keyvault`.
+- [ ] A regulated workload cannot schedule onto the non-confidential node pool.
+- [ ] A storage account or managed disk created without CMK is denied by policy.
+- [ ] Your evidence pack maps the deployment to CBUAE governance,
+      materiality/cloud-outsourcing, data-protection and auditability controls.
 
-## Hints
+## Guiding questions
 
-- Use a node label / taint pattern so only regulated namespaces land on the
-  confidential node pool.
-- For AKS, combine confidential node pools with **Kata / isolated workload**
-  settings where available in the region and cluster version you select.
-- Keep the Key Vault and Log Analytics workspace in `${country.azure.primary_region}`;
-  use `${country.azure.paired_region}` only for DR replicas and backup recovery.
-- Map your controls back to the legal stack explicitly: DIFC DP Law for data
-  handling, CBUAE for customer-protection evidence, UAE IAS for security
-  baseline controls.
+- Why is confidential compute stronger evidence than simple encryption at rest
+  when the bank is worried about memory-resident exposure?
+- What remains under bank control if Microsoft operates the cloud but the bank
+  controls the CMK and workload identity model?
+- Which controls deserve a `deny` effect and which should be `audit` or
+  `deployIfNotExists` to stay operationally realistic?
+- How do you prove a regulator could still obtain records during an incident,
+  even if live production access is tightly restricted?
 
-## Estimated duration
+## UAE-specific pitfalls
 
-90 minutes.
+- **CBUAE scope is not the same as DIFC scope.** A CBUAE-regulated bank may have
+  DIFC entities, but the core onshore bank remains answerable to the CBUAE.
+- **Same-region DR is not enough.** Use `${country.azure.paired_region}` for
+  recovery design, but keep the primary control evidence anchored in
+  `${country.azure.primary_region}`.
+- **Confidential pool scheduling is easy to get wrong.** If your taints,
+  tolerations and selectors are weak, regulated pods will quietly land on the
+  standard pool.
+- **CMK without operations is not a regulator story.** Show rotation,
+  revocation, audit logs and recovery expectations, not just a single `az`
+  screenshot.
+
+## Regulator references
+
+- [UAE Government data protection overview](https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws)
+- [CBUAE Rulebook](https://rulebook.centralbank.ae/)
+- [DIFC data protection](https://www.difc.ae/business/laws-regulations/data-protection/)
+- [ADGM Office of Data Protection](https://www.adgm.com/operating-in-adgm/office-of-data-protection)
+- [TDRA](https://tdra.gov.ae/)
+- [Dubai Health Authority](https://www.dha.gov.ae/)
+
+## Stretch goals
+
+- Add an admission-control policy that rejects regulated pods unless they set
+  the correct node selector, workload identity and restricted security context.
+- Add a quarterly attestation export for the bank's outsourcing register.
+- Extend the design so a DIFC branch can consume the platform through a
+  documented inter-perimeter interface rather than sharing the same landing
+  zone directly.

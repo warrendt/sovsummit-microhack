@@ -56,6 +56,7 @@ Adds the upstream multi-attendee prep before deploying the foundation:
    groups (`labuser-01`, `labuser-02`, …) and assigns Owner to each lab
    user.
 
+<!-- <<<INTERNAL_ONLY>>> -->
 #### Optional: also create the lab users (`--create-users` / `-CreateUsers`)
 
 Adds two more upstream steps **before** the three above:
@@ -78,6 +79,7 @@ pwsh ./build-za.ps1 -Coach -CreateUsers -Attendees 30 `
 
 Extra modules required for `--create-users`: `Microsoft.Graph.Users`,
 `Microsoft.Graph.Identity.SignIns`, `ImportExcel`.
+<!-- <<<END_INTERNAL_ONLY>>> -->
 
 ```bash
 ./build-za.sh --coach --attendees 30
@@ -127,6 +129,7 @@ automatically. **After the ~30 min ArcBox deploy completes**, copy-paste the
 two commands the script prints to tag `ArcBox-Client` and delete its DevTestLab
 auto-shutdown schedule (LocalBox prints the same for `LocalBox-Client`).
 
+<!-- <<<INTERNAL_ONLY>>> -->
 ## Microhack prep guide cross-walk
 
 | PDF page | Step | Wired here? |
@@ -142,6 +145,26 @@ auto-shutdown schedule (LocalBox prints the same for `LocalBox-Client`).
 | 9-11 | Deploy LocalBox (~4-6 h) | ✅ `--deploy-localbox` |
 | 11-12 | `CostControl=Ignore` on rg-arcbox/rg-localbox + clients + disable auto-shutdown | ✅ RG-level auto; client VM tag + schedule delete printed for coach after deploy |
 | 12-13 | Cost estimates ~1000 USD/event | Documented in `common/LOCAL_LAB.md` §8.5 |
+<!-- <<<END_INTERNAL_ONLY>>> -->
+
+<!-- PUBLIC_REPLACEMENT_FOR_PREP_CROSSWALK
+## What `--coach` does, step by step
+
+| # | Step | Wired here? |
+|---|---|---|
+| 1 | Resource providers register | ✅ automatic |
+| 2 | Security group "Microhack Sovereignty Summit" (parent over LabUsers + AdminUsers) | ✅ `--create-summit-group` |
+| 3 | Conditional Access policy "Security info registration for Microsoft partners and vendors" excludes the group | ✅ `--apply-ca-exclusion` (auto + manual fallback) |
+| 4 | vCPU quota verification (and optional request submission) | ✅ wired into `--coach` |
+| 5 | RBAC: lab user group gets `Deployment Validator` + Security Reader + Resource Policy Contributor | ✅ wired into `--coach` |
+| 6 | Per-attendee resource groups (`labuser-01` … `labuser-NN`) | ✅ wired into `--coach` |
+| 7 | (optional) ArcBox + LocalBox demo VMs for Challenges 5 & 6 | ✅ `--deploy-arcbox` / `--deploy-localbox` |
+| 8 | `CostControl=Ignore` tag on demo resource groups + auto-shutdown disable | ✅ RG-level auto; client VM tag + schedule delete printed after deploy |
+
+> Note: lab user *creation* (Entra users + Temporary Access Passes) is left
+> to the coach to perform via the Entra portal or partner-specific tooling.
+> This repo does **not** ship a bulk-user-creation script for public use.
+END_PUBLIC_REPLACEMENT_FOR_PREP_CROSSWALK -->
 
 ## Deployment outputs
 

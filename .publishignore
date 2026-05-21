@@ -1,0 +1,35 @@
+# .publishignore — paths excluded from the public mirror.
+# Patterns follow rsync --exclude-from syntax.
+# See INTERNAL.md for the rationale per entry.
+
+# --- Microsoft-internal documentation / state ---
+INTERNAL.md
+Microhack_Prep.pdf
+TemporaryAccessPasses.xlsx
+**/TemporaryAccessPasses.xlsx
+.planning/
+.copilot/
+.gsd/
+**/.DS_Store
+
+# --- User-creation helpers (tenant scope, partner-only) ---
+common/resources/preparation-helpers/Create-MHUsers.ps1
+common/resources/preparation-helpers/Create-AdminUsers.ps1
+build/*/resources/preparation-helpers/Create-MHUsers.ps1
+build/*/resources/preparation-helpers/Create-AdminUsers.ps1
+
+# --- Local sandbox / venv / build caches ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- Git internals ---
+.git/
+.github/CODEOWNERS
+
+# --- Anything ending in .internal.md is internal-only by convention ---
+*.internal.md
+**/*.internal.md
+
+# Internal coach handoff
+DRY-RUN.md

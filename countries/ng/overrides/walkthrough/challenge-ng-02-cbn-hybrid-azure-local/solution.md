@@ -36,6 +36,8 @@ Tag convention:
 - `cbn-tier=derived`
 - `ng-datacentre=lagos-dc1` (or your test site)
 - `cbn-outsourcing-id=<board-approved reference>`
+- `data-classification=raw|tokenised|derived`
+- `detokenisation-owner=payments-security`
 
 ## 3. Build the CBN Hybrid Landing Zone policy initiative
 
@@ -46,7 +48,8 @@ Key policies:
 | Deny locations for `cbn-tier=regulated` in public Azure | derived subscription | Deny |
 | Allowed locations = `${country.azure.primary_region}, ${country.azure.paired_region}` | derived subscription | Deny |
 | Storage account encryption keySource = Microsoft.Keyvault | derived subscription | DeployIfNotExists |
-| Require tags `cbn-tier`, `ng-datacentre`, `cbn-outsourcing-id`, `data-classification` | both | Deny / Audit |
+| Require private endpoints for storage, SQL and Key Vault | derived subscription | Deny / Audit |
+| Require tags `cbn-tier`, `ng-datacentre`, `cbn-outsourcing-id`, `data-classification`, `detokenisation-owner` | both | Deny / Audit |
 | Defender for Cloud on storage + SQL + Arc | both | DeployIfNotExists |
 
 This gives you a direct line from technical policy to CBN expectations around
@@ -92,7 +95,9 @@ Capture at least these artefacts:
    location transparency, sub-outsourcing controls.
 4. Exit and repatriation plan: how regulated workloads fall back to the Nigeria
    tier if `${country.azure.primary_region}` is unavailable.
-5. Mapping of controls to CBN framework sections and NDPA safeguards.
+5. Key-ceremony note showing how public-cloud CMKs are sourced, imported or
+   rotated under customer control.
+6. Mapping of controls to CBN framework sections and NDPA safeguards.
 
 ## 7. Verify
 
@@ -107,6 +112,9 @@ kubectl -n tokeniser run smoke --image=ghcr.io/sovsummit/tokeniser-smoke -- \
   --pii "22222222222" --expect-token-prefix NG-TOK-
 ```
 
+Also create one derived-tier resource without a private endpoint and confirm the
+initiative blocks it or flags it `NonCompliant`.
+
 Restore a tokenised backup into `${country.azure.paired_region}` and confirm the
 dataset is analytically useful but does not reveal raw customer identifiers.
 
@@ -120,5 +128,5 @@ Map each control to:
   **para. 7** (enforcement).
 - **CBN Shared Services / Outsourcing Guidelines** — approval, contract,
   audit-rights, exit/repatriation.
-- **NDPA 2023** — security/accountability, breach handling, cross-border
-  treatment of derived datasets.
+- **NDPA 2023 + GAID 2025** — security/accountability, breach handling,
+  cross-border treatment of derived datasets.

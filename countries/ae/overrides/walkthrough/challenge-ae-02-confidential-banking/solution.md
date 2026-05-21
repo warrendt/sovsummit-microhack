@@ -1,96 +1,129 @@
-# Solution — Challenge AE-02 (DIFC confidential banking)
+# Solution — Challenge AE-02 (CBUAE confidential banking)
 
 > Walkthrough for `${country.summit_edition}` / Challenge AE-02.
 > Primary region: `${country.azure.primary_region}`.
 
-## 1. Provision the Premium Key Vault
+## 1. Build the security foundation first
+
+Create the security resource group, Premium Key Vault and HSM-backed key:
 
 ```bash
-az keyvault create
-  --name kv-sovsummit-ae-$RANDOM
-  --resource-group rg-ae-bank-platform
-  --location ${country.azure.primary_region}
-  --sku ${country.azure.cmk_hsm_sku}
-  --enable-rbac-authorization true
-  --enable-purge-protection true
+KV_NAME="kv-ae-bank-$RANDOM"
+
+az group create -n rg-ae-bank-security -l ${country.azure.primary_region}
+
+az keyvault create \
+  --name "$KV_NAME" \
+  --resource-group rg-ae-bank-security \
+  --location ${country.azure.primary_region} \
+  --sku ${country.azure.cmk_hsm_sku} \
+  --enable-rbac-authorization true \
+  --enable-purge-protection true \
   --retention-days 90
+
+az keyvault key create \
+  --vault-name "$KV_NAME" \
+  --name bank-cmk \
+  --kty RSA-HSM \
+  --size 3072
 ```
 
-Create or import the CMK that will protect banking storage accounts, disks and
-selected database services.
+Then define a rotation policy and capture the key owner, approver and emergency
+revocation process in the evidence pack.
 
-## 2. Create the AKS cluster and confidential node pool
+## 2. Create CMK-backed storage and disk encryption
 
-Create the control plane in `${country.azure.primary_region}`, then add a
-regulated node pool backed by one of `${country.azure.confidential_compute_skus}`.
-In the lab, pin regulated workloads with labels / taints such as
-`banking-tier=regulated`.
+Use the same vault for:
+
+- a **Storage account** that will hold KYC documents, onboarding evidence and
+  complaints records;
+- a **Disk Encryption Set** for regulated managed disks used by stateful banking
+  workloads.
+
+That gives you a clear regulator story: the bank controls key custody, not the
+application team and not the cloud platform by default.
+
+## 3. Create the private AKS cluster and confidential node pool
 
 ```bash
-az aks create
-  --resource-group rg-ae-bank-app
-  --name aks-ae-bank
-  --location ${country.azure.primary_region}
-  --enable-managed-identity
-  --node-count 1
+az group create -n rg-ae-bank-platform -l ${country.azure.primary_region}
+
+az aks create \
+  --resource-group rg-ae-bank-platform \
+  --name aks-ae-bank \
+  --location ${country.azure.primary_region} \
+  --enable-managed-identity \
+  --enable-azure-rbac \
+  --enable-private-cluster \
+  --node-count 1 \
   --node-vm-size Standard_D4s_v5
 
-az aks nodepool add
-  --resource-group rg-ae-bank-app
-  --cluster-name aks-ae-bank
-  --name regcc
-  --node-vm-size Standard_DC4as_v5
-  --node-count 1
-  --labels banking-tier=regulated workload=confidential
+az aks nodepool add \
+  --resource-group rg-ae-bank-platform \
+  --cluster-name aks-ae-bank \
+  --name regcc \
+  --mode User \
+  --node-vm-size Standard_DC4as_v5 \
+  --node-count 1 \
+  --labels banking-tier=regulated confidential=true \
   --node-taints banking-tier=regulated:NoSchedule
 ```
 
-If your lab subscription exposes AKS confidential-container settings, enable the
-confidential workload runtime on this pool and reserve it for onboarding,
-fraud-screening and payment-support namespaces only.
+Pin onboarding, sanctions-screening and payment-support namespaces to the
+confidential pool with node selectors, tolerations and workload admission
+controls.
 
-## 3. Wire storage to CMK and Key Vault CSI
+## 4. Integrate workload identity and Key Vault CSI
 
-- Create the storage account in `${country.azure.primary_region}` with
-  `encryption.keySource = Microsoft.Keyvault`.
-- Grant the AKS workload identity access to read secrets / certificates from the
-  Key Vault CSI provider.
-- Keep application secrets, signing keys and TLS certificates in the vault; the
-  containers receive short-lived mounts, not raw key files baked into images.
+- Enable AKS workload identity / OIDC.
+- Use Key Vault CSI so application secrets, certificates and signing material
+  are mounted just-in-time.
+- Keep long-lived keys out of images, Kubernetes secrets and repo history.
 
-## 4. `DIFC Confidential Banking Baseline` initiative
+## 5. Build the `CBUAE Confidential Banking Baseline`
 
 Recommended controls:
 
 | Policy | Effect | Why |
 |---|---|---|
-| Allowed locations | Deny | Banking workloads stay in-country. |
-| Storage accounts should use customer-managed key | DeployIfNotExists / Deny | Enforce CMK-backed storage. |
-| Key vaults should have purge protection enabled | Deny | Prevent destructive key loss. |
-| Kubernetes clusters should restrict privileged containers | Deny | Reduce blast radius on the cluster. |
-| Custom policy: regulated namespaces require confidential node pool label | Audit / Deny | Forces the regulated tier onto confidential compute. |
-| Diagnostic settings to Log Analytics in `${country.azure.primary_region}` | DeployIfNotExists | Supports DIFC, CBUAE and UAE IAS evidence. |
+| Allowed locations | Deny | Keeps primary banking workloads in the UAE |
+| Allowed locations for resource groups | Deny | Stops RG drift |
+| AKS clusters should be private | Deny | Reduces attack surface |
+| Storage accounts / disks must use CMK | Deny or DeployIfNotExists | Enforces bank-controlled encryption |
+| Key Vault must use RBAC + purge protection | Deny | Protects key custody and recovery |
+| Public network access disabled for regulated services | Deny | Prevents accidental internet exposure |
+| Diagnostic settings to in-country workspace | DeployIfNotExists | Preserves audit trail |
+| Custom policy: `banking-tier=regulated` workloads require confidential pool | Audit / Deny | Keeps decrypted data on confidential compute |
 
-## 5. Verify
+## 6. Verify
 
 ```bash
-az aks show -g rg-ae-bank-app -n aks-ae-bank --query "agentPoolProfiles[].{name:name,vmSize:vmSize,nodeLabels:nodeLabels}" -o table
-az keyvault show -g rg-ae-bank-platform -n kv-sovsummit-ae-1234 --query "{sku:properties.sku.name,purge:properties.enablePurgeProtection,location:location}"
+az aks show -g rg-ae-bank-platform -n aks-ae-bank \
+  --query "agentPoolProfiles[].{name:name,vmSize:vmSize,labels:nodeLabels,taints:nodeTaints}" -o table
+
+az keyvault show -g rg-ae-bank-security -n "$KV_NAME" \
+  --query "{sku:properties.sku.name,purge:properties.enablePurgeProtection,location:location}" -o yaml
 ```
 
 Negative tests:
 
-- Try to deploy a regulated pod without the required toleration / node selector;
-  it should remain unscheduled.
-- Try to create a storage account without CMK; policy should deny or mark it
-  non-compliant immediately.
+- Deploy a regulated pod without the required node selector / toleration. It
+  should remain unscheduled or be rejected by policy.
+- Try to create a regulated storage account without CMK. Policy should deny it.
+- Try to enable a public endpoint on a regulated data service. Policy should
+  deny or flag it.
 
-## 6. Audit mapping
+## 7. Map the evidence to CBUAE themes
 
-Document the evidence as:
+| Control theme | Evidence |
+|---|---|
+| Governance | Architecture approval, role assignments, named service owner |
+| Materiality | Risk assessment showing onboarding / payments are material cloud workloads |
+| Data protection | CMK, private cluster, confidential node pool, Key Vault CSI |
+| Auditability | Policy state, AKS / Key Vault / Storage diagnostics, deployment logs |
+| Business continuity | `${country.azure.paired_region}` recovery design and tested procedures |
+| Exit planning | Backup / restore, key revocation, migration runbook |
+| Consumer protection | Secure storage and retrieval of complaints / customer records |
 
-- **DIFC DP Law:** lawful handling of customer personal data, controller / processor segregation.
-- **CBUAE Consumer Protection Regulation / Standards:** customer-data protection, outsourcing evidence, complaints traceability.
-- **UAE IAS:** key management, logging, privileged access and incident evidence.
-
-That gives the bank an auditor-ready story without moving data outside the UAE.
+That produces a CBUAE-ready platform story: confidential compute for live
+processing, CMK for key custody, and auditable controls for cloud outsourcing.

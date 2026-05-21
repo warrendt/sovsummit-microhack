@@ -2,10 +2,11 @@
 
 > Walkthrough for `${country.summit_edition}` / Challenge EG-02.
 
-## 1. Stand up the lab Azure Local cluster
+## 1. Stand up the in-country tier
 
-Use the upstream LocalBox helper pinned to a region near the lab (registration
-plane lives in `${country.azure.azure_local_instance_location}`):
+Use the LocalBox helper to simulate the Azure Local environment. Keep the
+registration plane near the lab in `${country.azure.azure_local_instance_location}`
+while the **regulated workload boundary** remains conceptually inside Egypt.
 
 ```powershell
 . ./countries/${country.iso2}/params/defaults.ps1
@@ -15,77 +16,90 @@ plane lives in `${country.azure.azure_local_instance_location}`):
   -AzureLocalInstanceLocation $Global:DefaultAzureLocalInstanceLoc
 ```
 
-Once the nested cluster is up, register it with Arc:
+Register the cluster and validate Arc visibility:
 
 ```bash
 az stack-hci cluster show -g rg-eg-localbox --name eg-cluster
 az connectedmachine list -g rg-eg-arc -o table
 ```
 
-## 2. Hybrid landing-zone subscriptions
+## 2. Split scopes by data class
 
-Create two subscriptions (or RGs in the lab):
+Use two scopes (subscriptions or resource groups in the lab):
 
-- `sub-eg-regulated` → Arc-enabled on-prem only. Policy denies any Azure
-  region.
-- `sub-eg-derived`   → `${country.azure.primary_region}` /
-  `${country.azure.paired_region}` only. Policy requires
-  `cbe-tier=non-regulated` tag.
+- `sub-eg-regulated` → Azure Local / Arc only. Holds customer master, token
+  vault, re-identification services, and the most sensitive telemetry.
+- `sub-eg-derived` → `${country.azure.primary_region}` /
+  `${country.azure.paired_region}` only. Holds tokenised analytics,
+  non-identifying backups, and permitted management services.
 
-## 3. CBE Hybrid Landing Zone policy initiative
+## 3. Build the `CBE Hybrid Landing Zone` initiative
 
-Key policies:
+Recommended controls:
 
 | Policy | Scope | Effect |
 |---|---|---|
 | Allowed locations = `${country.azure.primary_region}, ${country.azure.paired_region}` | `sub-eg-derived` | Deny |
-| Storage account encryption keySource = Microsoft.Keyvault | `sub-eg-derived` | DeployIfNotExists |
-| Require tag `cbe-tier` | both | Deny |
-| Audit Arc machines missing tag `azure-arc-eg-data-centre` | `sub-eg-regulated` | Audit |
-| Defender for Cloud (Standard) on storage + SQL + Arc | both | DeployIfNotExists |
+| Deny `cbe-tier=regulated` resources in `${country.azure.primary_region}` | `sub-eg-derived` | Deny |
+| Storage must use CMK (`encryption.keySource = Microsoft.Keyvault`) | `sub-eg-derived` | Deny or DeployIfNotExists |
+| Require tags `cbe-tier`, `pdpc-permit-id`, `tokenisation-pattern` | both | Deny |
+| Audit Arc machines missing `azure-arc-eg-data-centre` | `sub-eg-regulated` | Audit |
+| Defender for Cloud baseline on storage + SQL + Arc | both | DeployIfNotExists |
 
-## 4. Tokenisation pipeline
+## 4. Keep the token vault in Egypt
 
-On the regulated AKS-on-Azure-Local cluster deploy Presidio (or your
-tokeniser of choice). The pattern:
+Deploy Presidio or another tokeniser on the regulated Azure Local tier.
+The required pattern is:
 
+```text
+PII source in Egypt
+  -> tokeniser on Azure Local
+  -> token vault + re-ID service on Azure Local
+  -> tokenised stream only
+  -> Event Hubs / Storage / analytics in ${country.azure.primary_region}
 ```
-PII source -> Presidio (on-prem) -> tokenised stream -> Event Hubs in
-${country.azure.primary_region} -> ADLS Gen2 (CMK from Premium KV) ->
-Synapse / Fabric analytics
-```
 
-Wrapping key: generate in **on-prem HSM**, import as a BYOK blob into the
-Premium Key Vault; never enable `Soft delete + Recover` for the wrapping key
-material outside Egypt.
+The master mapping table and re-identification path must never move to
+`${country.azure.primary_region}`.
 
-## 5. Telemetry split
+## 5. Encryption and key custody
 
-- Regulated workloads → Arc MMA / AMA → on-prem syslog → SIEM in Cairo.
-- Non-regulated workloads → Log Analytics workspace in
-  `${country.azure.primary_region}` → Sentinel.
+- Use a **Premium Key Vault** in `${country.azure.primary_region}` for derived-data
+  services that need CMK.
+- Generate or wrap the master key material from an **in-country HSM / vault**.
+- Document exactly which key material never leaves Egypt and who controls
+  revocation, recovery and destruction.
 
-## 6. Verify
+## 6. Telemetry split
+
+- Regulated workloads → AMA / Arc → in-country syslog / SIEM.
+- Derived workloads → Log Analytics workspace in `${country.azure.primary_region}`.
+
+If telemetry contains identifiers, treat it as regulated and keep it in Egypt.
+
+## 7. Verify
 
 ```bash
-# Should be denied
+# expected: denied, because regulated workloads cannot be placed in the public-cloud tier
 az storage account create -n stregulated -g rg-eg-derived \
   -l ${country.azure.primary_region} --tags cbe-tier=regulated
 
-# Tokenised end-to-end smoke test
+# expected: token value only, not the original identifier
 kubectl -n tokeniser run smoke --image=ghcr.io/sovsummit/tokeniser-smoke -- \
   --pii "01099887766" --expect-token-prefix EG-TOK-
 ```
 
-DR drill: restore a tokenised backup into `${country.azure.paired_region}`
-and confirm `SELECT customer_id, msisdn FROM wallet.users LIMIT 1` returns
-token strings, not raw MSISDNs.
+Run a DR drill by restoring a tokenised backup in `${country.azure.paired_region}`
+and confirm the dataset is still non-identifying without the in-country token
+vault.
 
-## 7. Evidence
+## 8. Evidence pack
 
-Map each control to:
+Capture:
 
-- CBE Cloud Computing Framework Sections 5 (data localisation), 7 (key
-  management), 9 (incident response).
-- PDPL Articles 4 (purpose), 12 (processor obligations), 14 (cross-border),
-  35 (security), 41 (breach notification).
+- Arc-connected machine evidence for the in-country estate;
+- policy denies for any attempted `cbe-tier=regulated` deployment in
+  `${country.azure.primary_region}`;
+- proof that the token vault and re-identification service remain in-country;
+- a DR restore showing operational continuity without raw identity exposure;
+- the CBE / PDPL mapping used by legal and audit.

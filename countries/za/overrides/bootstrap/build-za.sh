@@ -20,11 +20,13 @@
 #      assignment so you can jump straight into Challenge 1.
 #
 # What --coach adds (in this order, before step 4 above):
+#   <<<INTERNAL_ONLY>>>
 #   Create-MHUsers.ps1     - (--create-users) create N lab users in the
 #                            LabUsers group and a 24-hour Temporary Access
 #                            Pass per user, exported to an .xlsx file
 #   Create-AdminUsers.ps1  - (--create-users) create N admin users in the
 #                            AdminUsers group (password-based)
+#   <<<END_INTERNAL_ONLY>>>
 #   2-vcpu-quotas.ps1      - check current vCPU quota in ${country.azure.primary_region}
 #                            and (if --submit-quota-requests) submit increase requests
 #   3-rbac.ps1             - create the 'Deployment Validator' custom role and assign
@@ -41,8 +43,10 @@
 #   ./build-za.sh --coach --attendees 30         # coach mode for 30 attendees
 #   ./build-za.sh --coach --lab-users-group LabUsers --attendees 30
 #   ./build-za.sh --coach --submit-quota-requests
+# <<<INTERNAL_ONLY>>>
 #   ./build-za.sh --coach --create-users --attendees 30 \
 #                 --admin-password '<pw>' --event-start-date 2026-02-10T00:00:00
+# <<<END_INTERNAL_ONLY>>>
 #
 # Live-event flags (default ON under --coach):
 #   --create-summit-group / --no-create-summit-group
@@ -128,6 +132,7 @@ while [[ $# -gt 0 ]]; do
     --attendees)          ATTENDEES="$2"; shift 2 ;;
     --rg-prefix)          RG_PREFIX="$2"; shift 2 ;;
     --submit-quota-requests) SUBMIT_QUOTA=1; shift ;;
+    # <<<INTERNAL_ONLY>>>
     --create-users)       CREATE_USERS=1; shift ;;
     --lab-user-count)     LAB_USER_COUNT="$2"; shift 2 ;;
     --admin-user-count)   ADMIN_USER_COUNT="$2"; shift 2 ;;
@@ -135,6 +140,7 @@ while [[ $# -gt 0 ]]; do
     --admin-password)     ADMIN_PASSWORD="$2"; shift 2 ;;
     --event-start-date)   EVENT_START_DATE="$2"; shift 2 ;;
     --tap-export)         TAP_EXPORT_PATH="$2"; shift 2 ;;
+    # <<<END_INTERNAL_ONLY>>>
     --summit-group)         SUMMIT_GROUP="$2"; shift 2 ;;
     --no-create-summit-group) CREATE_SUMMIT_GROUP=0; shift ;;
     --create-summit-group)    CREATE_SUMMIT_GROUP=1; shift ;;
@@ -240,15 +246,19 @@ if [[ $COACH -eq 1 ]]; then
   fi
 
   LU_COUNT="${LAB_USER_COUNT:-$ATTENDEES}"
+  # <<<INTERNAL_ONLY>>>
   : "${TAP_EXPORT_PATH:=$BUNDLE_ROOT/TemporaryAccessPasses.xlsx}"
+  # <<<END_INTERNAL_ONLY>>>
 
   TENANT_ID="$(az account show --query tenantId -o tsv)"
   ACCOUNT_ID="$(az account show --query user.name -o tsv)"
 
   echo
   echo "==> [coach] Running all preparation in ONE pwsh session (reuses az CLI sign-in — no second login):"
+  # <<<INTERNAL_ONLY>>>
   [[ $CREATE_USERS -eq 1 ]] && echo "    1) Create-MHUsers.ps1     ($LU_COUNT users in '$LAB_USERS_GROUP')"
   [[ $CREATE_USERS -eq 1 ]] && echo "    2) Create-AdminUsers.ps1  ($ADMIN_USER_COUNT users in '$ADMIN_GROUP')"
+  # <<<END_INTERNAL_ONLY>>>
   echo "    3) 2-vcpu-quotas.ps1      ($LOCATION, $ATTENDEES attendees$( [[ $SUBMIT_QUOTA -eq 1 ]] && echo ', submit requests' ))"
   echo "    4) 3-rbac.ps1             (group '$LAB_USERS_GROUP' on $SUB_ID)"
   echo "    5) 4-resource-groups.ps1  (${ATTENDEES}x ${RG_PREFIX}NN in $LOCATION)"
@@ -331,6 +341,7 @@ if [[ $COACH -eq 1 ]]; then
     # ------------------------------------------------------------
     # 4. Create lab + admin users (optional)
     # ------------------------------------------------------------
+    # <<<INTERNAL_ONLY>>>
     if ($env:CREATE_USERS_FLAG -eq "1") {
       Write-Host ""
       Write-Host "==> Create-MHUsers.ps1 ..." -ForegroundColor Cyan
@@ -353,6 +364,7 @@ if [[ $COACH -eq 1 ]]; then
           -Password $pw `
           -SkipModuleInstall
     }
+    # <<<END_INTERNAL_ONLY>>>
 
     # ------------------------------------------------------------
     # 5. 2-vcpu-quotas.ps1 — feed Enter to its Read-Host prompt

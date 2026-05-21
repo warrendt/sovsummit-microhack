@@ -20,34 +20,39 @@ azure:
   arc_region: uaenorth
 
 regulatory:
-  primary_law: UAE Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL)
-  executive_regulations: Cabinet Decision No. 44 of 2023 (Executive Regulations of the PDPL)
-  free_zone_carveout: DIFC and ADGM keep their own data-protection regimes, so jurisdiction depends on where the controller or processor is established and which free-zone legal perimeter the workload serves.
+  primary_law: UAE Federal Decree-Law No. 45 of 2021 Regarding the Protection of Personal Data (PDPL)
+  executive_regulations: Cabinet Decision No. 44 of 2023 (PDPL Executive Regulations, in force)
+  free_zone_carveout: DIFC and ADGM remain separate data-protection perimeters. Federal PDPL excludes personal data governed by DIFC or ADGM law, and government data / government authorities generally sit outside PDPL unless acting commercially, so legal establishment matters as much as Azure region.
   frameworks:
-    - UAE Federal PDPL (Federal Decree-Law No. 45 of 2021)
-    - PDPL Executive Regulations (Cabinet Decision No. 44 of 2023)
-    - DIFC Data Protection Law (DIFC Law No. 5 of 2020)
-    - ADGM Data Protection Regulations 2021
-    - UAE Information Assurance Standards (TDRA / formerly NESA)
+    - UAE Federal Decree-Law No. 45 of 2021 Regarding the Protection of Personal Data (PDPL)
+    - Cabinet Decision No. 44 of 2023 (Executive Regulations of the PDPL)
+    - DIFC Data Protection Law (DIFC Law No. 5 of 2020, as amended by DIFC Laws Amendment Law No. 1 of 2025)
+    - ADGM Data Protection Regulations 2021, including the Substantial Public Interest Conditions Rules 2025
+    - CBUAE Outsourcing Regulation and Standards for Banks
     - CBUAE Consumer Protection Regulation and Consumer Protection Standards
-    - Dubai Health Data Law (Dubai Law No. 13 of 2019 Regulating ICT in Health Fields)
+    - CBUAE Rulebook guidance for Financial Institutions Adopting Enabling Technologies (Cloud Computing)
+    - UAE Information Assurance baseline (formerly NESA / IAS, now under national assurance programmes)
+    - Federal Law No. 2 of 2019 Concerning the Use of Information and Communication Technology in Health Fields
+    - DHA health-data protection, sharing and access-control policies for Dubai-licensed health entities
   regulator_links:
+    - name: UAE Government data protection overview
+      url: https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws
     - name: UAE Data Office
       url: https://u.ae/en/about-the-uae/digital-uae/data/data-office
     - name: DIFC Commissioner of Data Protection
       url: https://www.difc.ae/business/laws-regulations/data-protection/
     - name: ADGM Office of Data Protection
       url: https://www.adgm.com/operating-in-adgm/office-of-data-protection
+    - name: CBUAE Rulebook
+      url: https://rulebook.centralbank.ae/
     - name: TDRA
       url: https://tdra.gov.ae/
-    - name: Central Bank of the UAE
-      url: https://www.centralbank.ae/
     - name: Dubai Health Authority
       url: https://www.dha.gov.ae/
 
 scenarios:
-  public_sector_tenant: "An Abu Dhabi government entity modernising a citizen-services and case-management platform"
-  financial_tenant: "A DIFC-licensed bank modernising digital onboarding, payments and risk analytics"
+  public_sector_tenant: "A government-related citizen-services platform integrating with onshore entities, a DIFC bank and an ADGM analytics provider"
+  financial_tenant: "A CBUAE-licensed UAE bank modernising digital onboarding, payments and fraud analytics"
 
 sponsor:
   primary: Microsoft UAE

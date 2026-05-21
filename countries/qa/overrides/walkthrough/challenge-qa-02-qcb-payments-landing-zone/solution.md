@@ -3,102 +3,119 @@
 > Walkthrough for `${country.summit_edition}` / Challenge QA-02.
 > Primary region: `${country.azure.primary_region}`.
 
-## 1. Create the workload split
+## 1. Start with the regulatory shape, not the subnet map
 
-Use two logical zones:
+QCB’s Cloud Computing Regulation gives you the headings for the whole landing zone:
 
-- `sub-qa-payments-prod` → production payments in `${country.azure.primary_region}` only.
-- `sub-qa-payments-dr` → controlled DR / analytics in `${country.azure.paired_region}` for tokenised or encrypted backup data only.
+- governance,
+- register,
+- due diligence,
+- access / audit rights,
+- business continuity,
+- exit plan,
+- key management,
+- data protection.
 
-This is necessary because ${country.azure.official_region_pair}; `${country.azure.paired_region}` is a deliberate customer DR choice rather than an Azure-managed pair.
+The most important technical line for this lab is **QCB 21.4**: **PII and financial information must be processed within Qatar only**.
+That means `${country.azure.paired_region}` can be used only for transformed or backup data.
 
-## 2. Build the QCB initiative
+## 2. Recommended subscription split
 
-Core policies:
-
-| Policy | Scope | Effect |
+| Subscription | Purpose | Region rule |
 |---|---|---|
-| Allowed locations = `${country.azure.primary_region}` | prod subscription | Deny |
-| Allowed locations = `${country.azure.primary_region}`, `${country.azure.paired_region}` | DR subscription | Deny |
-| Storage / SQL / disk encryption with CMK | both | Deny or DeployIfNotExists |
-| Public network access disabled for Storage / SQL / Key Vault | both | Deny |
-| Require tags `qcb-approval-id`, `outsourcing-tier`, `dr-transfer-approved`, `nia-classification` | both | Deny |
-| Custom `QaProdNoDrDataStores` | DR subscription | Deny if production-class data store lacks `dr-transfer-approved=yes` |
+| `sub-qa-payments-prod` | Live regulated payment processing | `${country.azure.primary_region}` only |
+| `sub-qa-payments-shared` | Logging, Key Vault, policy, monitoring, DNS | `${country.azure.primary_region}` only |
+| `sub-qa-payments-dr` | DR / analytics copies | `${country.azure.paired_region}` only for tokenised, masked or encrypted-backup data |
 
-```bash
-az policy set-definition create \
-  --name qa-qcb-payments \
-  --display-name "QCB Payments Landing Zone" \
-  --management-group mg-sovsummit-qa \
-  --definitions @qa-qcb-payments.initiative.json
-```
+## 3. Control stack for Qatar Central
 
-## 3. Provision the Qatar Central CMK stack
+Because `${country.azure.primary_region}` does not currently offer Confidential Compute GA SKUs, use this equivalent-control stack:
+
+| Risk | Control in this solution | Residual note |
+|---|---|---|
+| Cleartext exposure in storage | CMK-backed SQL / Storage / disks | Strong at-rest protection |
+| Network exposure | Private endpoints, no public network access, segmented subnets | Strong in-transit / network control |
+| Over-privileged operators | Separate RBAC for app, DB and key admins | Reduces insider blast radius |
+| Sensitive columns in database | Always Encrypted, preferably with secure enclaves if supported by chosen SQL deployment | Column-level protection, but not full VM-memory confidentiality |
+| DR data exposure | App-tier tokenisation or masking before replication | Raw identifiers never leave Qatar |
+| Key misuse | HSM-backed Key Vault, purge protection, logging, least privilege | Keys remain in Qatar |
+
+## 4. Policy initiative shape
+
+Bundle these controls into **`QCB Payments Landing Zone`**:
+
+| Policy | Effect | Scope |
+|---|---|---|
+| Allowed locations = `${country.azure.primary_region}` | Deny | prod + shared |
+| Allowed locations = `${country.azure.paired_region}` | Deny | DR |
+| Storage / SQL / disk encryption with CMK | Deny or DeployIfNotExists | all payment data stores |
+| Public network access disabled | Deny | SQL / Storage / Key Vault |
+| Required tags | Deny | all RGs and data resources |
+| `QaDrOnlyTransformedData` | Deny | DR subscription |
+| Diagnostics to Qatar Log Analytics | DeployIfNotExists | all |
+
+Suggested required tags:
+
+- `qcb-approval-id`
+- `outsourcing-tier`
+- `dr-transfer-approved`
+- `nia-classification`
+- `data-form`
+- `exit-plan-id`
+
+## 5. Example provisioning steps
 
 ```bash
 az keyvault create \
   --name kv-qa-payments-$RANDOM \
-  --resource-group rg-qa-payments-platform \
+  --resource-group rg-qa-payments-shared \
   --location ${country.azure.primary_region} \
   --sku ${country.azure.cmk_hsm_sku} \
-  --enable-purge-protection true \
-  --enable-rbac-authorization true
+  --enable-rbac-authorization true \
+  --enable-purge-protection true
 
 az storage account create \
-  --name stqapaymentsprod$RANDOM \
+  --name stqapayprod$RANDOM \
   --resource-group rg-qa-payments-prod \
   --location ${country.azure.primary_region} \
   --sku Standard_ZRS \
   --public-network-access Disabled
 ```
 
-Attach the CMK from the Premium vault before onboarding application data.
+Then attach CMKs and private endpoints before any regulated data is loaded.
 
-## 4. Compensating control for missing confidential compute
+## 6. SQL protection decision
 
-${country.azure.confidential_compute_note}
+Use this branching logic:
 
-Use this lab pattern instead:
+- **If** your chosen Azure SQL deployment in `${country.azure.primary_region}` supports **Always Encrypted with secure enclaves**, use it for the most sensitive columns (payer identifiers, merchant settlement references, selected PAN-adjacent attributes).
+- **If not**, protect those fields with deterministic encryption or app-tier tokenisation before they ever reach the DR path.
 
-```text
-Card / payer data in ${country.azure.primary_region}
--> tokenisation or masking job in ${country.azure.primary_region}
--> approved replica in ${country.azure.paired_region}
--> DR restore / analytics without de-tokenisation keys
-```
+The key point is that `${country.azure.paired_region}` receives only transformed or backup data, never the detokenisation secret.
 
-Keep re-identification keys and vault administration in `${country.azure.primary_region}`.
-
-## 5. QFC contrast
-
-For `${country.scenarios.qfc_tenant}` create a separate policy assignment that:
-
-- requires processor contracts and transfer records,
-- allows `${country.azure.paired_region}` for analytics,
-- still denies unrestricted public endpoints,
-- keeps the free-zone evidence pack distinct from the state-wide QCB evidence pack.
-
-Reference URLs:
-- QCB: `${country.regulatory.qcb_regulation_url}`
-- QFC DPO: `${country.regulatory.qfc_dpo_url}`
-
-## 6. Verify
+## 7. Negative tests
 
 ```bash
-# Should be denied: no CMK
-az storage account create -n stnocmkqa -g rg-qa-payments-prod \
-  -l ${country.azure.primary_region} --sku Standard_LRS
+# Denied: raw production data store in DR
+az sql server create -n sqlqadrraw -g rg-qa-payments-dr -l ${country.azure.paired_region} \
+  --tags qcb-approval-id=QCB-2026-014 outsourcing-tier=critical \
+         dr-transfer-approved=yes nia-classification=Restricted \
+         data-form=raw-production exit-plan-id=EXIT-001
 
-# Should be denied: production data in UAE North
-az sql server create -n sqlqadrtest -g rg-qa-payments-dr -l ${country.azure.paired_region} \
-  --tags qcb-approval-id=QCB-2026-014 outsourcing-tier=critical dr-transfer-approved=no nia-classification=Restricted
-
-# Smoke test: only tokenised rows replicate
-az policy state list --management-group mg-sovsummit-qa -o table
+# Allowed path only for transformed data
+az group create -n rg-qa-payments-dr-analytics -l ${country.azure.paired_region} \
+  --tags qcb-approval-id=QCB-2026-014 outsourcing-tier=critical \
+         dr-transfer-approved=yes nia-classification=Internal \
+         data-form=tokenised exit-plan-id=EXIT-001
 ```
 
-Evidence mapping:
+## 8. Residual-risk statement you should include
 
-- QCB cloud regulation → approval, outsourcing governance, audit rights, exit planning, resilience testing.
-- PDPPL / executive regulations → transfer documentation and technical safeguards.
-- QFC regulations → lawful transfer mechanics for the free-zone analytics case.
+A good answer says this plainly:
+
+> Qatar Central currently lacks GA Confidential Compute SKUs, so this design uses CMK, private connectivity, column-level protection and tokenisation as compensating controls. These materially reduce exposure, but they do not provide the same hardware-backed memory-confidentiality and attestation assurances that Azure Confidential VMs would provide.
+
+## 9. QFC contrast
+
+For `${country.scenarios.qfc_tenant}` you may allow a different analytics pattern under the separate QFC regime, but keep it in a **separate subscription / evidence pack**.
+Do not let a QFC analytics exception weaken the QCB-regulated payment boundary.

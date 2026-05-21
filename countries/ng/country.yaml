@@ -4,9 +4,11 @@ summit_edition: "Sovereignty Summit Nigeria 2026"
 language: en
 
 azure:
-  # No in-country Azure region as of mid-2026. Nigerian sovereign designs use
-  # Azure Local + Arc for regulated workloads that must remain in Nigeria, with
-  # South Africa North reserved for non-regulated / derived data.
+  # No in-country Azure region as of mid-2026. Nigeria therefore needs two
+  # honest patterns: (1) Azure Local + Arc for workloads that must stay in
+  # Nigeria, and (2) sovereign public cloud in South Africa North with strict
+  # location pinning, HSM-backed CMK, Private Link and in-country tokenisation
+  # for NDPA-restricted fields.
   primary_region: southafricanorth
   primary_region_display: South Africa North (closest hyperscale region to Nigeria)
   paired_region: southafricawest
@@ -28,10 +30,10 @@ regulatory:
   breach_notification_hours: 72
   frameworks:
     - Nigeria Data Protection Act 2023 (NDPA) — ss.24, 32, 40, 41, 42, 43, 44, 65
-    - Nigeria Data Protection Regulation 2019 (NDPR) + NITDA implementation framework
+    - NDPA General Application and Implementation Directive (GAID) 2025 — DCPMI obligations, cross-border transfer instruments, annual returns and breach workflow detail
     - NDPC Guidance Notice on Registration of Data Controllers and Data Processors of Major Importance (14 Feb 2024)
     - CBN Risk-Based Cybersecurity Framework and Guidelines for Deposit Money Banks and Payment Service Banks (2024)
-    - CBN Guidelines on Shared Services Arrangements for Banks and Other Financial Institutions (cloud / outsourcing approval)
+    - CBN Guidelines on Shared Services Arrangements for Banks and Other Financial Institutions (outsourcing / approval / audit-rights expectations)
   regulator_links:
     - name: Nigeria Data Protection Commission
       url: https://ndpc.gov.ng/
@@ -51,3 +53,4 @@ sponsor:
 extra_challenges:
   - challenge-ng-01-ndpa-cross-border-sdcmi
   - challenge-ng-02-cbn-hybrid-azure-local
+  - challenge-ng-03-sovereign-public-cloud-johannesburg
