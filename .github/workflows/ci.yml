@@ -6,38 +6,90 @@ on:
   pull_request:
 
 jobs:
-  render:
-    name: Render every country
+  shell:
+    name: Bash scripts parse
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install deps
-        run: pip install -r tools/requirements.txt
-      - name: Render all countries (check mode)
-        run: python tools/render.py --check
-      - name: Render all countries (real)
-        run: python tools/render.py
-      - name: Smoke-test ZA bundle
+      - name: bash -n every shell script
         run: |
-          test -f build/za/Readme.md
-          test -f build/za/challenges/challenge-sa-01-popia-residency.md
-          grep -q "southafricanorth" build/za/Readme.md
-          grep -q "POPIA" build/za/Readme.md
-          # Schema doc legitimately contains the literal token syntax; exclude it.
-          if grep -RIn "\${country\." build/za/ --exclude-dir=schema; then
-            echo "Unresolved tokens in ZA bundle"; exit 1
-          fi
+          set -euo pipefail
+          fail=0
+          while IFS= read -r f; do
+            if ! bash -n "$f"; then
+              echo "::error file=$f::bash syntax error"
+              fail=1
+            fi
+          done < <(find countries -name '*.sh' -type f)
+          exit $fail
 
-  yamllint:
-    name: Lint YAML
+  pwsh:
+    name: PowerShell scripts parse
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install yamllint
-      - run: yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable, truthy: disable, comments: {min-spaces-from-content: 1}}}" countries/ common/schema/
+      - name: Parse every .ps1 with the PowerShell language parser
+        shell: pwsh
+        run: |
+          $fail = 0
+          Get-ChildItem -Path countries -Recurse -Filter *.ps1 | ForEach-Object {
+            $errs = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs) | Out-Null
+            if ($errs) {
+              Write-Host "::error file=$($_.FullName)::PowerShell parse errors:"
+              $errs | ForEach-Object { Write-Host "  $_" }
+              $fail = 1
+            }
+          }
+          exit $fail
+
+  bicep:
+    name: Bicep templates build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-azure-cli@v0
+        continue-on-error: true
+      - name: Install Bicep
+        run: |
+          curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+          chmod +x bicep
+          sudo mv bicep /usr/local/bin/bicep
+          bicep --version
+      - name: Build every main.bicep
+        run: |
+          set -euo pipefail
+          while IFS= read -r f; do
+            echo "==> $f"
+            bicep build --file "$f" --stdout >/dev/null
+          done < <(find countries -name 'main.bicep' -type f)
+
+  layout:
+    name: Layout invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No stale template/build artefacts
+        run: |
+          set -euo pipefail
+          for forbidden in common tools build; do
+            if [ -e "$forbidden" ]; then
+              echo "::error::forbidden top-level directory '$forbidden' exists — repo is per-country self-contained, no rendering."
+              exit 1
+            fi
+          done
+      - name: No unresolved country tokens in shipped content
+        run: |
+          if grep -RIn '\${country\.' countries/; then
+            echo "::error::unresolved \${country.*} tokens — these must be baked into the country folder."
+            exit 1
+          fi
+      - name: No internal-only files committed
+        run: |
+          set -e
+          for f in INTERNAL.md DRY-RUN.md TemporaryAccessPasses.xlsx AdminLabUserPasswords.xlsx; do
+            if [ -e "$f" ]; then
+              echo "::error::internal artefact '$f' must not live in the repo — move to ~/Repos/SovSummit-Internal/"
+              exit 1
+            fi
+          done

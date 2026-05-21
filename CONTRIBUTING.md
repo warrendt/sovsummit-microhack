@@ -1,98 +1,86 @@
-# Contributing — adding or updating a country
+# Contributing
 
-This repo hosts a single MicroHack template (`common/`) with per-country
-overrides under `countries/<iso2>/`. Follow this checklist when adding a new
-country or updating an existing one.
+## Repository layout
 
-## 1. Pick the ISO2 code
-
-Use the **lowercase ISO 3166-1 alpha-2** code (e.g. `za`, `eg`, `ng`, `ae`,
-`sa`, `qa`). The folder name must match the `iso2` field inside
-`country.yaml`.
-
-## 2. Create the folder
+The repo is intentionally simple. Each country is a self-contained folder under
+`countries/`. There is **no** template rendering, no `common/` directory, and
+no build step. To read a challenge, open the markdown file directly.
 
 ```
 countries/<iso2>/
-  country.yaml            # required, see common/schema/country.schema.yaml
-  overrides/              # optional, mirrors the layout of common/
-  params/                 # optional, country defaults consumed by scripts
+├── README.md             # scenario, region, challenge index
+├── challenges/           # the markdown attendees read
+├── walkthrough/          # solutions (coaches only)
+├── bootstrap/            # main.bicep + build / teardown scripts (ZA only today)
+├── subscription-prep/    # idempotent multi-attendee prep (ZA only today)
+├── demo-vms/             # ArcBox + LocalBox deployers (ZA only today)
+└── cleanup/              # post-event resource-group purge
 ```
 
-## 3. Fill in `country.yaml`
+Only the South Africa folder (`countries/za/`) currently ships the bootstrap
+automation. The other country folders are scaffolded with country-specific
+challenges only.
 
-Required fields:
+## Adding a new country
 
-- `iso2`
-- `name`
-- `summit_edition`
-- `azure.primary_region`
-- `azure.paired_region`
+1. Copy `countries/za/` to `countries/<iso2>/`.
+2. Update `README.md` with the regulator(s), primary region, and sovereignty
+   pattern for the new country.
+3. Edit `bootstrap/main.bicep` and `main.bicepparam`:
+   - `primaryRegion` = new country's preferred region
+   - allowed-locations list reflects that country's residency requirements
+4. Rename `build-za.sh` / `build-za.ps1` / `teardown-za.sh` to use the new ISO
+   code (e.g. `build-ae.sh`). Update the banner text.
+5. Rewrite each `challenges/challenge-*.md` so the regulator names, citations,
+   and acceptance criteria reflect the new country's law and supervisor.
+6. Add or update walkthroughs in `walkthrough/` to match the new acceptance
+   criteria.
+7. Validate locally before committing (see below).
 
-Strongly recommended:
+## Validating a country folder
 
-- `azure.confidential_compute_skus` — verify with
-  `az vm list-skus -l <region> --query "[?contains(name, 'DC') || contains(name, 'EC')]"`
-- `azure.cmk_hsm_sku` — `Premium` if Key Vault Managed HSM is required.
-- `regulatory.frameworks` — primary statute first.
-
-Use the South Africa file (`countries/za/country.yaml`) as a worked example.
-
-## 4. Author overrides
-
-Anything you place under `countries/<iso2>/overrides/` is laid down on top of
-the rendered `common/` tree with the same relative path. Common overrides:
-
-- `overrides/Readme.md` — country landing page replacing the upstream one.
-- `overrides/challenges/challenge-<id>.md` — replace or add a challenge.
-- `overrides/walkthrough/<challenge-id>/solution.md` — matching solution.
-
-Tokens of the form `${country.<dotted.path>}` in any text file are substituted
-at render time with the value from `country.yaml`.
-
-## 5. Render and review locally
+Run from the repo root:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r tools/requirements.txt
-python tools/render.py <iso2>
-open build/<iso2>/Readme.md
+# Bicep compiles
+az bicep build --file countries/<iso2>/bootstrap/main.bicep --stdout >/dev/null
+
+# Bash scripts parse
+bash -n countries/<iso2>/bootstrap/build-*.sh
+bash -n countries/<iso2>/bootstrap/teardown-*.sh
+
+# PowerShell scripts parse
+pwsh -NoProfile -Command "[System.Management.Automation.Language.Parser]::ParseFile('countries/<iso2>/bootstrap/build-<iso2>.ps1',[ref]\$null,[ref]\$errs); if(\$errs){\$errs;exit 1}"
+
+# Dry-run the deployment
+./countries/<iso2>/bootstrap/build-<iso2>.sh --what-if
 ```
 
-Run `python tools/render.py --check` to render every country into a temp
-directory; CI does the same.
+The CI workflow (`.github/workflows/ci.yml`) runs the bicep + bash + markdown
+checks on every push.
 
-## 6. Verify region & SKU availability
+## Sensitive content
 
-Before publishing a country edition, confirm in the chosen Azure region:
+The Microsoft-internal preparation helpers (user / TAP / CA-exclusion scripts,
+the prep PDF, internal docs) **must not** be committed here. They live at
+`~/Repos/SovSummit-Internal/` on coach machines and are loaded by
+`build-*.sh` / `build-*.ps1` via `--internal-helpers-path`, the
+`$SOVSUMMIT_INTERNAL_HELPERS` env var, or the default path. See the
+[main README](README.md#microsoft-internal-helpers-do-not-ship-here) for the
+discovery contract.
 
-- Confidential Compute VM SKUs are available (`Standard_DC*as_v5`,
-  `Standard_EC*as_v5`).
-- AKS Confidential node pools are supported.
-- Key Vault Premium / Managed HSM is offered.
-- Azure Arc + Azure Local are supported (`az connectedmachine` /
-  `az stack-hci`).
+If you ever need to redact the bootstrap script for a public mirror, the
+internal-only blocks are wrapped in `# <<<INTERNAL_ONLY>>> ... # <<<END_INTERNAL_ONLY>>>`
+markers so they can be stripped with `sed`.
 
-Note any gaps in the country `Readme.md` override so attendees know what to
-substitute (e.g. running a workload in the paired region instead).
+## Conventions
 
-## 7. Open a PR
-
-CI must be green (`renders all countries` + `bicep build`). Tag the PR with the
-country code (`country/za`, `country/eg`, …) and request review from the local
-chapter lead.
-
-## Upstream sync
-
-To pick up new upstream Microsoft MicroHack content:
-
-```bash
-# from a fresh checkout of microsoft/MicroHack main
-rsync -a --delete \
-  03-Azure/01-03-Infrastructure/01_Sovereign_Cloud/ \
-  /path/to/sovsummit/common/
-git diff -- common/
-```
-
-Review the diff carefully — country overrides referenced by path may need
-updates if upstream renames files.
+- Markdown: use ATX headings (`#`), unordered lists with `-`, code fences for
+  every command block.
+- PowerShell scripts: `param()` block, `Set-StrictMode -Version Latest`,
+  `$ErrorActionPreference = 'Stop'`, support `-NonInteractive` where attended
+  prompts exist.
+- Bash scripts: `#!/usr/bin/env bash`, `set -euo pipefail`, `--help` text in
+  leading `#` comments.
+- Bicep: prefer modules under `bootstrap/modules/`. Parameters that need
+  customisation per country live in `main.bicepparam`.

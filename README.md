@@ -1,92 +1,169 @@
-# Sovereignty Summit MicroHack
+# Sovereignty Summit — MicroHack
 
-A multi-country adaptation of the
-[Microsoft Sovereign Cloud MicroHack](https://github.com/microsoft/MicroHack/tree/main/03-Azure/01-03-Infrastructure/01_Sovereign_Cloud)
-for the **Sovereignty Summit** series — starting with **South Africa**, then
-Egypt, Nigeria, UAE, Saudi Arabia, and Qatar.
+A six-challenge, hands-on workshop that takes a fictional regulated bank from
+"sovereignty is a slide" to a real, policy-enforced Azure landing zone — with
+data residency, customer-managed encryption, observability, confidential
+compute, sovereign AKS and Azure Local / Azure Arc on-premises sovereignty.
 
-The upstream MicroHack content is preserved verbatim under [`common/`](common/)
-and customized per event via [`countries/<iso2>/`](countries/) overrides plus a
-[`country.yaml`](common/schema/country.schema.yaml) configuration file. A
-single source of truth, rendered per event.
+The reference edition is **South Africa** (POPIA + SARB). Each additional
+country folder reframes the same six challenges for its own regulator(s) and
+sovereignty pattern.
 
-## Why a multi-country structure?
+---
 
-Each summit edition needs the same core challenges (Azure Policy, CMK, TLS,
-Confidential Compute, Arc/Azure Local) but:
+## What attendees learn
 
-- **Different Azure regions** (`southafricanorth`, `uaenorth`, `qatarcentral`, …)
-- **Different regulatory frameworks** (POPIA, PDPL, SAMA, DIFC, …)
-- **Different scenarios** (DHA, CBE, NDPC, SAMA-regulated banks, …)
-- **Different sponsors and branding**
+| #  | Challenge                              | Key Azure surfaces                                                |
+|----|----------------------------------------|-------------------------------------------------------------------|
+| 1  | **Data residency by policy**           | Azure Policy `allowedLocations`, custom initiative, deny-vs-audit |
+| 2  | **Customer-managed encryption**        | Key Vault Premium, BYOK, CMK on Storage / Key Vault references    |
+| 3  | **Sovereign observability**            | Log Analytics, Diagnostic Settings, policy-enforced collection    |
+| 4  | **Confidential VMs + Attestation**     | DCasv5/DCesv5, Azure Attestation, secure-boot evidence            |
+| 5  | **Sovereign AKS**                      | AKS w/ confidential nodes, KEDA, CVM attestation pod              |
+| 6  | **Azure Arc + Azure Local on-prem**    | ArcBox + LocalBox, hybrid sovereignty, Defender for Cloud         |
+| SA-01 | **POPIA data-residency landing zone** _(ZA add-on)_ | POPIA s.72 cross-border controls, BCR exception evidence |
 
-The hybrid `common/` + `countries/<iso2>/` model lets us:
+Each country folder contains the **rendered, ready-to-run** material — there is
+no template or build step. To read challenge 1 for South Africa, open
+[`countries/za/challenges/challenge-01.md`](countries/za/challenges/challenge-01.md).
 
-- ✅ Share challenges, scripts, and Bicep modules across all editions.
-- ✅ Override anything per country without forking.
-- ✅ Pick up upstream Microsoft updates by re-syncing `common/`.
+---
+
+## Country index
+
+| Code | Country         | Status            | Folder                                          |
+|------|-----------------|-------------------|-------------------------------------------------|
+| `za` | South Africa    | **Reference — fully tested** | [`countries/za/`](countries/za/)     |
+| `ae` | UAE             | Preview           | [`countries/ae/`](countries/ae/)               |
+| `eg` | Egypt           | Preview           | [`countries/eg/`](countries/eg/)               |
+| `ng` | Nigeria         | Preview           | [`countries/ng/`](countries/ng/)               |
+| `qa` | Qatar           | Preview           | [`countries/qa/`](countries/qa/)               |
+| `sa` | Saudi Arabia    | Preview           | [`countries/sa/`](countries/sa/)               |
+
+---
+
+## Quick start (engineer mode — one subscription, one engineer)
+
+You need: an Azure subscription you have Owner on, Azure CLI (`az`), Bicep
+(`az bicep install`), and roughly 30 minutes for the first deployment.
+
+```bash
+git clone https://github.com/warrendt/sovsummit-microhack.git
+cd sovsummit-microhack/countries/za/bootstrap
+
+# Preview what gets created
+./build-za.sh --what-if
+
+# Stand it up (single-engineer mode)
+./build-za.sh
+
+# When you're done
+./teardown-za.sh --apply
+```
+
+The script registers resource providers, deploys `main.bicep` at subscription
+scope, and prints the resource group + Key Vault + storage account you need
+for challenge 1. Then open
+[`countries/za/challenges/challenge-01.md`](countries/za/challenges/challenge-01.md).
+
+---
+
+## Coach mode (a summit of 5-60 attendees on a shared subscription)
+
+```bash
+cd countries/za/bootstrap
+
+./build-za.sh --coach \
+    --attendees 40 \
+    --lab-users-group LabUsers \
+    --submit-quota-requests \
+    --create-summit-group \
+    --apply-ca-exclusion
+```
+
+Coach mode runs, in order:
+
+1. `subscription-prep/2-vcpu-quotas.ps1`   — region quota check (+ optional request)
+2. `subscription-prep/3-rbac.ps1`          — custom `Deployment Validator` role + group RBAC
+3. `subscription-prep/4-resource-groups.ps1` — N numbered `labuser-NN` RGs + Owner
+4. _(optional, requires internal helpers)_ create `Microhack Sovereignty Summit` parent group + CA exclusion
+5. `main.bicep` deployment
+
+Cleanup with `./teardown-za.sh --apply --remove-users --purge-keyvault`.
+
+### Add-ons (off by default — they cost real money)
+
+| Flag                  | Adds                                                                            |
+|-----------------------|---------------------------------------------------------------------------------|
+| `--deploy-arcbox`     | ArcBox-full into `rg-arcbox` in `swedencentral` (~30 min, ~hundreds USD/day)     |
+| `--deploy-localbox`   | LocalBox host VM + Azure Local instance (~4-6 h, ~thousands USD/day)             |
+| `--create-users`      | Create `N` lab + admin users + Temporary Access Passes (Microsoft-internal only) |
+
+ArcBox + LocalBox feed **challenge 6** (the on-prem sovereignty story). They
+are shared coach demos — attendees observe them; the policy posture is set up
+so the residency policy does **not** block them.
+
+---
+
+## Microsoft-internal helpers (do not ship here)
+
+The coach flags `--create-users`, `--create-summit-group`, and
+`--apply-ca-exclusion` rely on six PowerShell helpers that touch the
+MCAPS-internal tenant (TAP issuance, AdminUser provisioning, CA policy
+exclusion, etc.). Those scripts and the prep PDF live **outside this repo**
+at:
+
+```
+~/Repos/SovSummit-Internal/
+├── README.md
+├── docs/{INTERNAL.md, DRY-RUN.md, Microhack_Prep.pdf}
+└── preparation-helpers/
+    ├── Create-MHUsers.ps1
+    ├── Create-AdminUsers.ps1
+    ├── Repair-LabUsers.ps1
+    ├── Retry-TAPs.ps1
+    ├── New-SummitSecurityGroup.ps1
+    └── Set-CAExclusion.ps1
+```
+
+Discovery order used by `build-za.sh` / `build-za.ps1`:
+
+1. `--internal-helpers-path <dir>` flag
+2. `$SOVSUMMIT_INTERNAL_HELPERS` env var
+3. `~/Repos/SovSummit-Internal/preparation-helpers` (default)
+
+If you only want **engineer mode** or **coach mode without user provisioning**,
+none of this is required — the repo is fully self-contained for those flows.
+
+---
 
 ## Repository layout
 
 ```
-common/                     Upstream Microsoft Sovereign Cloud MicroHack content
-  challenges/               6 shared challenge briefs (markdown)
-  walkthrough/              Solution walkthroughs per challenge
-  resources/                PowerShell prep + cleanup + Azure Local/Arc deploys
-  schema/country.schema.yaml  Documented country.yaml schema
-countries/
-  za/                       🇿🇦 South Africa (first concrete edition)
-    country.yaml            Region, regulators, scenarios, sponsor, etc.
-    overrides/              Files that override or extend common/ (same layout)
-    params/                 Country-specific deployment defaults (PowerShell)
-  eg/  ng/  ae/  sa/  qa/   Stub editions awaiting authoring
-tools/
-  render.py                 Merges common/ + countries/<iso2> -> build/<iso2>/
-  requirements.txt          PyYAML
-.github/workflows/ci.yml    Renders every country on every push
-LICENSE                     MIT (upstream + customizations)
+sovsummit-microhack/
+├── README.md            # this file
+├── CONTRIBUTING.md      # how to add a country (copy ZA, rename, edit)
+├── LICENSE
+├── .github/workflows/   # bicep + markdown lint
+└── countries/
+    ├── za/              # full edition — challenges, walkthroughs, bootstrap, demo VMs
+    ├── ae/ eg/ ng/ qa/ sa/   # preview editions — country-specific challenges only
 ```
 
-## Rendering a country bundle
+Per-country folders are independent: nothing under `countries/za/` references
+any sibling country, and there is no shared `common/` directory or
+template-rendering build step.
 
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r tools/requirements.txt
+---
 
-# Render every country into build/<iso2>/
-python tools/render.py
+## Adding a country
 
-# Or just one
-python tools/render.py za
-```
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). The short version: copy `countries/za/`,
+rename, and rewrite the regulator-specific language in each challenge.
 
-Tokens of the form `${country.<dotted.path>}` (for example
-`${country.azure.primary_region}`) found in any text file are replaced with the
-value from the country's `country.yaml`.
+---
 
-The generated `build/za/` is the bundle you hand to attendees of the South
-Africa summit.
+## License
 
-## Country roadmap
-
-| Order | Country | ISO2 | Status | Primary region |
-|---|---|---|---|---|
-| 1 | South Africa | `za` | ✅ Authored | `southafricanorth` |
-| 2 | Egypt | `eg` | 🚧 Stub | `uaenorth` (closest) |
-| 3 | Nigeria | `ng` | 🚧 Stub | `southafricanorth` (closest) |
-| 4 | UAE | `ae` | 🚧 Stub | `uaenorth` |
-| 5 | Saudi Arabia | `sa` | 🚧 Stub | `saudiarabiaeast` |
-| 6 | Qatar | `qa` | 🚧 Stub | `qatarcentral` |
-
-## Adding a new country
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
-## Attribution
-
-Original MicroHack content authored by **Jan Egil Ring**, **Ye Zhang**,
-**Murali Rao Yelamanchili** and other Microsoft contributors, released under
-the MIT License. See [`common/Readme.md`](common/Readme.md) and
-[`LICENSE`](LICENSE).
-
-Sovereignty Summit customizations © 2026 Warren du Toit and contributors.
+MIT — see [`LICENSE`](LICENSE). Based on the Microsoft
+[Sovereign Cloud MicroHack](https://github.com/microsoft/MicroHack/tree/main/03-Azure/01-03-Infrastructure/01_Sovereign_Cloud).

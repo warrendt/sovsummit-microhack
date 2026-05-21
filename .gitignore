@@ -1,8 +1,24 @@
-build/
+# macOS / iCloud junk
 .DS_Store
-*.log
+**/.DS_Store
+* 2
+**/* 2
+* 2.*
+
+# Python (only needed if you run the legacy renderer — repo no longer ships one)
 .venv/
 __pycache__/
 *.pyc
+
+# Editor noise
 .idea/
 .vscode/
+
+# Local deploy artefacts
+.deploy-logs/
+*.log
+TemporaryAccessPasses.xlsx
+AdminLabUserPasswords.xlsx
+
+# Per-agent scratch dirs
+.scratch-*/
