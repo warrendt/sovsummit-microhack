@@ -28,6 +28,12 @@ Set the secure-transport baseline on the data-bearing platform services,
 prove that weaker clients are rejected, and stand up the monitoring that
 tells you when the baseline drifts.
 
+> **Build inside your assigned `labuser-NN` resource group.** Create your
+> own Log Analytics workspace there for the KQL evidence — don't share the
+> coach foundation workspace. Your Storage accounts + App Service from this
+> challenge should be in the same RG so diagnostic-settings wiring is
+> trivial.
+
 ## Learning objectives
 
 By the end you should be able to:

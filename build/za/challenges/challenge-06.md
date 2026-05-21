@@ -26,18 +26,35 @@ so the same Azure Policy, Defender for Cloud, Update Manager and Machine
 Configuration capabilities you applied to your cloud workloads in
 Challenges 1–5 now reach the sovereign on-prem estate too.
 
+> **Shared environment — ArcBox + LocalBox are already running.**
+> Both Jumpstart environments take 30 min (ArcBox) and 4–6 h (LocalBox) to
+> stand up, so your coach pre-deploys **one shared** `rg-arcbox` and
+> `rg-localbox` for everyone to explore. You will *not* be deploying these
+> from scratch. Your contribution is to **onboard new Arc-enabled servers
+> from your own `labuser-NN` resource group**, point the Challenge 1
+> initiative at the shared Arc estate, and prove that Defender + Update
+> Manager + Machine Configuration treat your Arc-enabled servers like
+> first-class Azure citizens.
+>
+> Ask your coach for **Reader** access on `rg-arcbox` and `rg-localbox`
+> if you can't see them yet.
+
 ## Learning objectives
 
 - Explain the role of **Azure Arc**, **Azure Local** and **Arc-enabled
   servers** in a sovereign hybrid architecture, and where the line is
   between Microsoft-managed and customer-managed.
-- Onboard a Linux and a Windows machine to Azure Arc and verify they
-  appear as `Microsoft.HybridCompute/machines` resources.
+- Onboard a Linux **and** a Windows machine **that you deploy in your
+  `labuser-NN` RG** to Azure Arc and verify they appear as
+  `Microsoft.HybridCompute/machines` resources alongside the shared
+  ArcBox-managed nodes.
 - Apply an Azure Policy initiative (the one from Challenge 1) at a scope
   that covers both Azure-native and Arc-enabled servers, and observe
   compliance across both.
-- Deploy a VM on Azure Local through the Azure portal and explain when
-  this is the right answer vs deploying to `southafricanorth`.
+- Walk through how a municipal admin would deploy a VM onto **Azure
+  Local** through the Azure portal (using the shared `rg-localbox`
+  cluster) and explain when this is the right answer vs deploying to
+  `southafricanorth`.
 - Use **Azure Update Manager** to schedule a maintenance window across
   the hybrid estate.
 - Enable **Defender for Cloud** for Arc-enabled servers and triage the
@@ -45,11 +62,16 @@ Challenges 1–5 now reach the sovereign on-prem estate too.
 
 ## Success criteria
 
-- [ ] At least one **ArcBox** or equivalent jumpstart environment is
-      running and at least three Arc-enabled servers appear in the Azure
+- [ ] You can read the shared **ArcBox** environment (`rg-arcbox`) and
+      confirm at least three Arc-enabled servers appear in the Azure
       portal under `Azure Arc > Servers`.
-- [ ] At least one **LocalBox** (or your own Azure Local deployment) is
-      running and visible under `Azure Local`.
+- [ ] You can read the shared **LocalBox** environment (`rg-localbox`)
+      and confirm the Azure Local cluster appears under `Azure Local`.
+- [ ] You have **onboarded at least one new Arc-enabled server** that
+      you deployed yourself (in your `labuser-NN` RG or as a local VM
+      onboarded via `azcmagent connect`) — it must appear in the same
+      `Azure Arc > Servers` list with a clear name marking it as
+      yours (`labuserNN-arc-linux` or similar).
 - [ ] The policy initiative from Challenge 1 is assigned at a management
       group scope that includes the Arc-enabled servers, and the
       compliance dashboard reports state for **both** Azure-native and

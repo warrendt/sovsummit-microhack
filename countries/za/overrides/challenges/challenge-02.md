@@ -31,6 +31,13 @@ then onboard the three data services to it. The goal is not just "CMK on" —
 it is **provable customer control**, with key rotation, recovery and
 revocation procedures that work.
 
+> **Build everything inside your assigned `labuser-NN` resource group.**
+> You have Owner + Key Vault Administrator + Storage Account Contributor at
+> that scope, which is enough for this challenge. The `rg-sovza-foundation`
+> RG you may hear coaches reference is the *coach reference implementation*
+> — you don't have access to it on purpose. Build your own CMK pipeline
+> from scratch so the rotation/revocation evidence is yours.
+
 ## Learning objectives
 
 You should leave this challenge able to:

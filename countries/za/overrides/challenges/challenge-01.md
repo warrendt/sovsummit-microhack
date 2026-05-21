@@ -35,6 +35,34 @@ Build a single Azure Policy initiative that delivers controls 1–3, plus the
 RBAC model that delivers control 4. Apply both at the right scope. Then
 generate the evidence pack the Information Regulator will accept.
 
+## What you start with (platform baseline)
+
+Your subscription already has **two baseline residency assignments** applied
+by the platform team during environment setup:
+
+| Assignment | Built-in policy | Scope | Effect |
+|---|---|---|---|
+| `sovza-allowed-locations` | Allowed locations (resources) | Subscription | Deny resources outside `${country.azure.primary_region}` / `${country.azure.paired_region}` |
+| `sovza-allowed-rg-locations` | Allowed locations for resource groups | Subscription | Deny new RGs outside the same two regions |
+
+Treat these as the **POPIA s.72 minimum baseline** — they prove that *some*
+guardrail exists from day one. Your job is to **extend** them into the
+audit-grade control set the regulator wants:
+
+- Wrap these two + the new controls (required tag, public-network-disabled
+  for data services) into a **single named initiative** —
+  `Sovereignty Summit ZA / Foundations`.
+- Decide whether to assign the initiative at your subscription **or** at a
+  management-group scope (the success criteria below ask for MG scope —
+  justify or reassign accordingly).
+- Author the custom `SovereigntyComplianceAuditor` RBAC role.
+
+> The two baseline assignments will affect deployments you attempt inside
+> your `labuser-NN` resource group. If a `westeurope` storage test is denied
+> before you create *your* initiative, that's the platform baseline working
+> — your initiative still has to add the tag + public-network controls on
+> top.
+
 ## Learning objectives
 
 By the end of this challenge you should be able to:
