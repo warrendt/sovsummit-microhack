@@ -127,11 +127,13 @@ for ($i = 1; $i -le $ResourceGroupCount; $i++) {
     $ResourceGroupName = "$ResourceGroupPrefix{0:D2}" -f $ResourceGroupNumber
 
     try {
-        $null = New-AzResourceGroup -Name $ResourceGroupName -Location $Location
-        Write-Host "Resource group $ResourceGroupName has been created" -ForegroundColor Green
+        # -Force suppresses the [Y/N] confirm when the RG already exists.
+        $null = New-AzResourceGroup -Name $ResourceGroupName -Location $Location -Force
+        Write-Host "Resource group $ResourceGroupName ready" -ForegroundColor Green
     }
     catch {
-        Write-Host "Failed to create resource group $ResourceGroupName" -ForegroundColor Red
+        Write-Host "Failed to create resource group ${ResourceGroupName}: $($_.Exception.Message)" -ForegroundColor Red
+        continue
     }
 
     Write-Host "Updating role assignments for resource group $ResourceGroupName" -ForegroundColor Cyan
@@ -141,14 +143,50 @@ for ($i = 1; $i -le $ResourceGroupCount; $i++) {
 
     $SignInName = $ResourceGroupName + $UPNSuffix
 
+    # Resolve the user object ID once so we can do idempotent role checks
+    # (and bypass case-sensitive UPN matching issues with -SignInName).
+    $userObjectId = $null
     try {
-        $null = New-AzRoleAssignment -SignInName $SignInName -ResourceGroupName $ResourceGroupName -RoleDefinitionName 'Owner'
-        $null = New-AzRoleAssignment -SignInName $SignInName -ResourceGroupName $ResourceGroupName -RoleDefinitionName 'Key Vault Administrator'
-        $null = New-AzRoleAssignment -SignInName $SignInName -ResourceGroupName $ResourceGroupName -RoleDefinitionName 'Storage Account Contributor'
-        Write-Host "Role assignment completed for user $SignInName in resource group $ResourceGroupName" -ForegroundColor Green
+        $userObjectId = (Get-AzADUser -UserPrincipalName $SignInName -ErrorAction Stop).Id
+    } catch {
+        Write-Host "  [WARN] User '$SignInName' not found in directory — skipping role assignment. Create users first (Create-MHUsers.ps1)." -ForegroundColor Yellow
+        continue
     }
-    catch {
-        Write-Host "Failed to assign role to user $SignInName in resource group $ResourceGroupName" -ForegroundColor Red
+    if (-not $userObjectId) {
+        Write-Host "  [WARN] User '$SignInName' resolved but has no object id — skipping." -ForegroundColor Yellow
+        continue
+    }
+
+    $rolesToAssign = @('Owner','Key Vault Administrator','Storage Account Contributor')
+    $rgScope = "/subscriptions/$($context.Subscription.Id)/resourceGroups/$ResourceGroupName"
+
+    foreach ($role in $rolesToAssign) {
+        try {
+            $existing = Get-AzRoleAssignment -ObjectId $userObjectId `
+                                             -RoleDefinitionName $role `
+                                             -Scope $rgScope `
+                                             -ErrorAction SilentlyContinue
+            if ($existing) {
+                Write-Host "  [SKIP] '$role' already assigned to $SignInName" -ForegroundColor DarkGray
+                continue
+            }
+
+            $null = New-AzRoleAssignment -ObjectId $userObjectId `
+                                         -RoleDefinitionName $role `
+                                         -Scope $rgScope `
+                                         -ErrorAction Stop
+            Write-Host "  [OK]   '$role' assigned to $SignInName" -ForegroundColor Green
+        }
+        catch {
+            $msg = $_.Exception.Message
+            if ($msg -match 'already exists|RoleAssignmentExists') {
+                Write-Host "  [SKIP] '$role' already assigned to $SignInName" -ForegroundColor DarkGray
+            } elseif ($msg -match 'AuthorizationFailed|does not have authorization|Forbidden') {
+                Write-Host "  [DENY] cannot assign '$role' — caller lacks 'User Access Administrator' or 'Owner' at the RG/subscription scope. Run the Entra 'Elevate access' tenant-root toggle, or assign User Access Administrator first. Error: $msg" -ForegroundColor Red
+            } else {
+                Write-Host "  [FAIL] '$role' to ${SignInName}: $msg" -ForegroundColor Red
+            }
+        }
     }
 
 }
