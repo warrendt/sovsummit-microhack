@@ -149,7 +149,7 @@ for ($i = 1; $i -le $ResourceGroupCount; $i++) {
     try {
         $userObjectId = (Get-AzADUser -UserPrincipalName $SignInName -ErrorAction Stop).Id
     } catch {
-        Write-Host "  [WARN] User '$SignInName' not found in directory — skipping role assignment. Create users first (Create-MHUsers.ps1)." -ForegroundColor Yellow
+        Write-Host "  [WARN] User '$SignInName' not found in directory — skipping role assignment. Create lab users first." -ForegroundColor Yellow
         continue
     }
     if (-not $userObjectId) {
