@@ -135,8 +135,11 @@ if (-not $WindowsAdminPassword) {
     $WindowsAdminPassword = Read-Host -Prompt "Enter admin password for the host VM" -AsSecureString
 }
 $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($WindowsAdminPassword)
-$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
-[System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+try {
+    $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+} finally {
+    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+}
 
 # Retrieve the object id of your directory's Azure Local resource provider.
 $spnProviderId = az ad sp list --display-name "Microsoft.AzureStackHCI Resource Provider" --output json | ConvertFrom-Json

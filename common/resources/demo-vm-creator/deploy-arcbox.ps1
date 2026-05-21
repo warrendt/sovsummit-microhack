@@ -120,8 +120,11 @@ if (-not $WindowsAdminPassword) {
     $WindowsAdminPassword = Read-Host -Prompt "Enter admin password for VMs" -AsSecureString
 }
 $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($WindowsAdminPassword)
-$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
-[System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+try {
+    $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+} finally {
+    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+}
 
 # Create resource group if it doesn't exist
 Write-Host "`nCreating resource group '$ResourceGroupName' in '$Location'..." -ForegroundColor Cyan
