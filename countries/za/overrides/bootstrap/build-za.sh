@@ -44,6 +44,26 @@
 #   ./build-za.sh --coach --create-users --attendees 30 \
 #                 --admin-password '<pw>' --event-start-date 2026-02-10T00:00:00
 #
+# Live-event flags (default ON under --coach):
+#   --create-summit-group / --no-create-summit-group
+#       Create parent group "Microhack Sovereignty Summit" (rename via
+#       --summit-group "<name>") with LabUsers + AdminUsers nested.
+#   --apply-ca-exclusion / --no-apply-ca-exclusion
+#       Exclude the group from the Conditional Access policy named in
+#       --ca-policy-name (default: "Security info registration for Microsoft
+#       partners and vendors"). Falls back to manual portal steps on 403.
+#
+# ArcBox + LocalBox demo VMs for Challenges 5 & 6 (OFF by default — they
+# cost real money and take 30 min / 4-6 h to deploy):
+#   --deploy-arcbox     Deploy ArcBox-full into rg-arcbox (swedencentral, ~30m)
+#   --deploy-localbox   Deploy LocalBox into rg-localbox (swedencentral shell
+#                       + Azure Local in --azure-local-instance-location, ~4-6h)
+#   --demo-admin-username <name>    Default: arcdemo
+#   --demo-admin-password '<pw>'    Prompted if any --deploy-* flag is set
+#   --arcbox-rg / --localbox-rg / --arcbox-location / --localbox-location
+#       Region defaults (swedencentral) are HARDCODED by the upstream Bicep —
+#       overriding will likely fail. Provided for completeness only.
+#
 # Requirements for --coach:
 #   - pwsh (PowerShell 7+) on PATH
 #   - Az.Accounts, Az.Resources, Microsoft.Graph.Groups PowerShell modules
@@ -53,11 +73,10 @@
 #   - Owner + User Access Administrator at the subscription scope
 #
 # Cleanup:
-#   az group delete -n rg-<prefix>-foundation --yes --no-wait
-#   az policy assignment delete --name <prefix>-allowed-locations
-#   az policy assignment delete --name <prefix>-allowed-rg-locations
-#   # If you ran --coach also delete the labuser-NN groups, custom role, and
-#   # group role assignments (the prep scripts print their names on creation).
+#   Use ./teardown-za.sh — mirrors this script's flag surface (--apply,
+#   --remove-users, --purge-keyvault) and idempotently removes RGs, policy
+#   assignments, custom role, group role assignments, users + groups, and
+#   soft-deleted Key Vaults.
 
 set -euo pipefail
 
