@@ -171,55 +171,144 @@ if [[ $COACH -eq 1 ]]; then
     echo "       Make sure you are running build-za.sh from a rendered build/za/bootstrap/ folder." >&2
     exit 1
   fi
-
-  if [[ $CREATE_USERS -eq 1 ]]; then
-    if [[ ! -d "$HELPERS_DIR" ]]; then
-      echo "ERROR: --create-users requires preparation helpers at $HELPERS_DIR." >&2
-      exit 1
-    fi
-    if [[ -z "$ADMIN_PASSWORD" ]]; then
-      read -r -s -p "Enter password for admin lab users: " ADMIN_PASSWORD; echo
-      [[ -n "$ADMIN_PASSWORD" ]] || { echo "Admin password is required." >&2; exit 1; }
-    fi
-
-    LU_COUNT="${LAB_USER_COUNT:-$ATTENDEES}"
-    : "${TAP_EXPORT_PATH:=$BUNDLE_ROOT/TemporaryAccessPasses.xlsx}"
-
-    echo
-    echo "==> [coach] Create-MHUsers.ps1 — creating $LU_COUNT lab users in group '$LAB_USERS_GROUP' (tenant scope)..."
-    MH_ARGS=(-UserCount "$LU_COUNT" -GroupName "$LAB_USERS_GROUP" -ExportPath "$TAP_EXPORT_PATH" -NonInteractive)
-    [[ -n "$EVENT_START_DATE" ]] && MH_ARGS+=(-EventStartDate "$EVENT_START_DATE")
-    pwsh -NoLogo -NonInteractive -File "$HELPERS_DIR/Create-MHUsers.ps1" "${MH_ARGS[@]}"
-
-    echo
-    echo "==> [coach] Create-AdminUsers.ps1 — creating $ADMIN_USER_COUNT admin users in group '$ADMIN_GROUP' (tenant scope)..."
-    pwsh -NoLogo -NonInteractive -Command "
-      \$pw = ConvertTo-SecureString -String '$ADMIN_PASSWORD' -AsPlainText -Force
-      & '$HELPERS_DIR/Create-AdminUsers.ps1' -UserCount $ADMIN_USER_COUNT -GroupName '$ADMIN_GROUP' -Password \$pw
-    "
+  if [[ $CREATE_USERS -eq 1 && ! -d "$HELPERS_DIR" ]]; then
+    echo "ERROR: --create-users requires preparation helpers at $HELPERS_DIR." >&2
+    exit 1
+  fi
+  if [[ $CREATE_USERS -eq 1 && -z "$ADMIN_PASSWORD" ]]; then
+    read -r -s -p "Enter password for admin lab users: " ADMIN_PASSWORD; echo
+    [[ -n "$ADMIN_PASSWORD" ]] || { echo "Admin password is required." >&2; exit 1; }
   fi
 
-  echo
-  echo "==> [coach] 2-vcpu-quotas.ps1 — checking vCPU quota in $LOCATION for $ATTENDEES attendees..."
-  QUOTA_ARGS=(-Region "$LOCATION" -NumberOfLabUsers "$ATTENDEES")
-  [[ $SUBMIT_QUOTA -eq 1 ]] && QUOTA_ARGS+=(-SubmitQuotaRequests)
-  pwsh -NoLogo -NonInteractive -File "$PREP_DIR/2-vcpu-quotas.ps1" "${QUOTA_ARGS[@]}" || {
-    echo "    quota check returned a non-zero exit code (often expected if a request was filed); continuing."
-  }
+  LU_COUNT="${LAB_USER_COUNT:-$ATTENDEES}"
+  : "${TAP_EXPORT_PATH:=$BUNDLE_ROOT/TemporaryAccessPasses.xlsx}"
+
+  TENANT_ID="$(az account show --query tenantId -o tsv)"
+  ACCOUNT_ID="$(az account show --query user.name -o tsv)"
 
   echo
-  echo "==> [coach] 3-rbac.ps1 — custom 'Deployment Validator' role + group RBAC for '$LAB_USERS_GROUP'..."
-  pwsh -NoLogo -NonInteractive -File "$PREP_DIR/3-rbac.ps1" \
-    -GroupName "$LAB_USERS_GROUP" -SubscriptionId "$SUB_ID"
+  echo "==> [coach] Running all preparation in ONE pwsh session (reuses az CLI sign-in — no second login):"
+  [[ $CREATE_USERS -eq 1 ]] && echo "    1) Create-MHUsers.ps1     ($LU_COUNT users in '$LAB_USERS_GROUP')"
+  [[ $CREATE_USERS -eq 1 ]] && echo "    2) Create-AdminUsers.ps1  ($ADMIN_USER_COUNT users in '$ADMIN_GROUP')"
+  echo "    3) 2-vcpu-quotas.ps1      ($LOCATION, $ATTENDEES attendees$( [[ $SUBMIT_QUOTA -eq 1 ]] && echo ', submit requests' ))"
+  echo "    4) 3-rbac.ps1             (group '$LAB_USERS_GROUP' on $SUB_ID)"
+  echo "    5) 4-resource-groups.ps1  (${ATTENDEES}x ${RG_PREFIX}NN in $LOCATION)"
 
-  echo
-  echo "==> [coach] 4-resource-groups.ps1 — creating $ATTENDEES attendee resource groups in $LOCATION..."
-  pwsh -NoLogo -NonInteractive -File "$PREP_DIR/4-resource-groups.ps1" \
-    -SubscriptionName "$SUB_OBJ_NAME" \
-    -Location "$LOCATION" \
-    -ResourceGroupPrefix "$RG_PREFIX" \
-    -ResourceGroupCount "$ATTENDEES" \
-    -StartIndex 1
+  CREATE_USERS_FLAG="$CREATE_USERS" \
+  ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+  LU_COUNT="$LU_COUNT" \
+  LAB_USERS_GROUP="$LAB_USERS_GROUP" \
+  TAP_EXPORT_PATH="$TAP_EXPORT_PATH" \
+  ADMIN_USER_COUNT="$ADMIN_USER_COUNT" \
+  ADMIN_GROUP="$ADMIN_GROUP" \
+  HELPERS_DIR="$HELPERS_DIR" \
+  PREP_DIR="$PREP_DIR" \
+  EVENT_START_DATE="$EVENT_START_DATE" \
+  SUB_ID="$SUB_ID" \
+  SUB_NAME="$SUB_NAME" \
+  TENANT_ID="$TENANT_ID" \
+  ACCOUNT_ID="$ACCOUNT_ID" \
+  LOCATION="$LOCATION" \
+  ATTENDEES="$ATTENDEES" \
+  RG_PREFIX="$RG_PREFIX" \
+  SUBMIT_QUOTA="$SUBMIT_QUOTA" \
+  pwsh -NoLogo -Command '
+    $ErrorActionPreference = "Stop"
+
+    # ------------------------------------------------------------
+    # 1. Ensure required modules (idempotent install)
+    # ------------------------------------------------------------
+    $needed = @("Az.Accounts","Az.Resources","Microsoft.Graph.Users",
+                "Microsoft.Graph.Groups","Microsoft.Graph.Identity.SignIns","ImportExcel")
+    foreach ($m in $needed) {
+      if (-not (Get-Module -ListAvailable -Name $m)) {
+        Write-Host "Installing $m ..." -ForegroundColor DarkGray
+        Install-PSResource -Name $m -TrustRepository -Scope CurrentUser -Quiet
+      }
+    }
+
+    # ------------------------------------------------------------
+    # 2. Connect Az PowerShell (interactive device code, ONCE).
+    #    Reusing az CLI''s ARM token isn''t reliable with Az.Accounts 5.x,
+    #    so we sign in to Az PowerShell directly. Subsequent runs reuse
+    #    the cached token from ~/.Azure.
+    # ------------------------------------------------------------
+    $ctx = Get-AzContext -ErrorAction SilentlyContinue
+    if (-not $ctx -or $ctx.Subscription.Id -ne $env:SUB_ID) {
+      Write-Host ""
+      Write-Host "Connecting Az PowerShell (device code) — sign in ONCE, both Az + Graph tokens come from this..." -ForegroundColor Yellow
+      Connect-AzAccount -Tenant $env:TENANT_ID -SubscriptionId $env:SUB_ID -DeviceCode | Out-Null
+    } else {
+      Write-Host "Reusing cached Az PowerShell context: $($ctx.Subscription.Name)" -ForegroundColor Green
+    }
+    Set-AzContext -SubscriptionId $env:SUB_ID -Tenant $env:TENANT_ID | Out-Null
+    Write-Host ("Az context : {0}  ({1})" -f (Get-AzContext).Subscription.Name, (Get-AzContext).Subscription.Id) -ForegroundColor Green
+
+    # ------------------------------------------------------------
+    # 3. Connect Microsoft Graph — derive token from Az context (no second login)
+    # ------------------------------------------------------------
+    $mgTok = (Get-AzAccessToken -ResourceTypeName MSGraph -AsSecureString -WarningAction SilentlyContinue).Token
+    Connect-MgGraph -AccessToken $mgTok -NoWelcome
+    Write-Host ("Mg context : {0}" -f (Get-MgContext).Account) -ForegroundColor Green
+
+    # ------------------------------------------------------------
+    # 4. Create lab + admin users (optional)
+    # ------------------------------------------------------------
+    if ($env:CREATE_USERS_FLAG -eq "1") {
+      Write-Host ""
+      Write-Host "==> Create-MHUsers.ps1 ..." -ForegroundColor Cyan
+      $mhArgs = @{
+        UserCount         = [int]$env:LU_COUNT
+        GroupName         = $env:LAB_USERS_GROUP
+        ExportPath        = $env:TAP_EXPORT_PATH
+        NonInteractive    = $true
+        SkipModuleInstall = $true
+      }
+      if ($env:EVENT_START_DATE) { $mhArgs.EventStartDate = [datetime]$env:EVENT_START_DATE }
+      & (Join-Path $env:HELPERS_DIR "Create-MHUsers.ps1") @mhArgs
+
+      Write-Host ""
+      Write-Host "==> Create-AdminUsers.ps1 ..." -ForegroundColor Cyan
+      $pw = ConvertTo-SecureString -String $env:ADMIN_PASSWORD -AsPlainText -Force
+      & (Join-Path $env:HELPERS_DIR "Create-AdminUsers.ps1") `
+          -UserCount ([int]$env:ADMIN_USER_COUNT) `
+          -GroupName $env:ADMIN_GROUP `
+          -Password $pw `
+          -SkipModuleInstall
+    }
+
+    # ------------------------------------------------------------
+    # 5. 2-vcpu-quotas.ps1 — feed Enter to its Read-Host prompt
+    # ------------------------------------------------------------
+    Write-Host ""
+    Write-Host "==> 2-vcpu-quotas.ps1 ..." -ForegroundColor Cyan
+    $quotaArgs = @("-Region", $env:LOCATION, "-NumberOfLabUsers", [int]$env:ATTENDEES)
+    if ($env:SUBMIT_QUOTA -eq "1") { $quotaArgs += "-SubmitQuotaRequests" }
+    try {
+      "" | & (Join-Path $env:PREP_DIR "2-vcpu-quotas.ps1") @quotaArgs
+    } catch {
+      Write-Warning "Quota step returned a non-zero exit code (often expected when a request was filed). Continuing."
+    }
+
+    # ------------------------------------------------------------
+    # 6. 3-rbac.ps1
+    # ------------------------------------------------------------
+    Write-Host ""
+    Write-Host "==> 3-rbac.ps1 ..." -ForegroundColor Cyan
+    & (Join-Path $env:PREP_DIR "3-rbac.ps1") -GroupName $env:LAB_USERS_GROUP -SubscriptionId $env:SUB_ID
+
+    # ------------------------------------------------------------
+    # 7. 4-resource-groups.ps1
+    # ------------------------------------------------------------
+    Write-Host ""
+    Write-Host "==> 4-resource-groups.ps1 ..." -ForegroundColor Cyan
+    & (Join-Path $env:PREP_DIR "4-resource-groups.ps1") `
+        -SubscriptionName $env:SUB_NAME `
+        -Location $env:LOCATION `
+        -ResourceGroupPrefix $env:RG_PREFIX `
+        -ResourceGroupCount ([int]$env:ATTENDEES) `
+        -StartIndex 0
+  '
 fi
 
 DEPLOY_NAME="${NAME_PREFIX}-bootstrap-$(date +%Y%m%d-%H%M%S)"

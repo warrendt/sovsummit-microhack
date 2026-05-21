@@ -67,20 +67,30 @@ foreach ($i in 1..$UserCount) {
 
     Write-Host "Creating user : $UserPrincipalName"
 
-    try {
-        New-MgUser @UserParams
-    }
-    catch {
-        Write-Host "Error creating user $UserPrincipalName : $_"
+    $existing = Get-MgUser -Filter "userPrincipalName eq '$UserPrincipalName'" -ErrorAction SilentlyContinue
+    if ($existing) {
+        Write-Host "  exists, skipping create."
+        $CreatedUser = @{ Id = $existing.Id }
+    } else {
+        try {
+            New-MgUser @UserParams | Out-Null
+        }
+        catch {
+            Write-Host "Error creating user $UserPrincipalName : $_"
+        }
     }
 
-    # Add user to group
+    # Add user to group (idempotent)
     $UserId = $CreatedUser.Id
-    try {
-        New-MgGroupMember -GroupId $GroupId -DirectoryObjectId $UserId
-    }
-    catch {
-        Write-Host "Error adding user $UserPrincipalName to group $GroupName : $_"
+    if ($UserId -and $GroupId) {
+        try {
+            New-MgGroupMember -GroupId $GroupId -DirectoryObjectId $UserId -ErrorAction Stop | Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notmatch 'already exist|added object references already exist') {
+                Write-Host "Error adding user $UserPrincipalName to group $GroupName : $_"
+            }
+        }
     }
 
 }

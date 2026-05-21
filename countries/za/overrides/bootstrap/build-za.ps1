@@ -197,7 +197,7 @@ if ($Coach) {
         -Location $Location `
         -ResourceGroupPrefix $ResourceGroupPrefix `
         -ResourceGroupCount $Attendees `
-        -StartIndex 1
+        -StartIndex 0
 }
 
 $deployName = "$NamePrefix-bootstrap-$(Get-Date -Format yyyyMMdd-HHmmss)"
