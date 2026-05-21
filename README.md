@@ -72,11 +72,11 @@ Africa summit.
 | Order | Country | ISO2 | Status | Primary region |
 |---|---|---|---|---|
 | 1 | South Africa | `za` | ✅ Authored | `southafricanorth` |
-| 2 | Egypt | `eg` | 🚧 Stub | `uaenorth` (closest) |
-| 3 | Nigeria | `ng` | 🚧 Stub | `southafricanorth` (closest) |
-| 4 | UAE | `ae` | 🚧 Stub | `uaenorth` |
-| 5 | Saudi Arabia | `sa` | 🚧 Stub | `saudiarabiaeast` |
-| 6 | Qatar | `qa` | 🚧 Stub | `qatarcentral` |
+| 2 | Egypt | `eg` | ✅ Authored | `uaenorth` (no in-country region) |
+| 3 | Nigeria | `ng` | ✅ Authored | `southafricanorth` (no in-country region) |
+| 4 | UAE | `ae` | ✅ Authored | `uaenorth` |
+| 5 | Saudi Arabia | `sa` | ✅ Authored | `saudiarabiaeast` |
+| 6 | Qatar | `qa` | ✅ Authored | `qatarcentral` |
 
 ## Adding a new country
 

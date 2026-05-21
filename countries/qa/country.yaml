@@ -1,35 +1,63 @@
 iso2: qa
 name: Qatar
-summit_edition: "Sovereignty Summit Qatar (TBD)"
+summit_edition: "Sovereignty Summit Qatar 2026"
 language: en
 
 azure:
   primary_region: qatarcentral
   primary_region_display: Qatar Central
   paired_region: uaenorth
-  paired_region_display: UAE North (interim paired region)
+  paired_region_display: UAE North
+  official_region_pair: Qatar Central has no official Azure pair
+  dr_region_rationale: UAE North is used in this edition as the customer-selected DR and approved transfer region.
   sovereign_region: false
-  confidential_compute_skus: []     # TODO confirm
+  in_country_region_available: true
+  confidential_compute_available: false
+  confidential_compute_skus: []
+  confidential_compute_note: Azure Products by Region does not list Confidential Compute / confidential VMs for Qatar Central; this edition uses CMK, tokenisation and documented cross-border controls instead.
   cmk_hsm_sku: Premium
-  azure_local_instance_location: westeurope
+  azure_local_instance_location: qatarcentral
   arc_region: qatarcentral
 
 regulatory:
   primary_law: Personal Data Privacy Protection Law (Law No. 13 of 2016)
+  executive_regulations: Council of Ministers Decision No. 17 of 2024 (Executive Regulations)
+  primary_regulator: National Data Privacy Office / Qatar Data Protection Office under NCSA, with MCIT policy coordination
+  primary_regulator_url: https://assurance.ncsa.gov.qa/
+  qcb_regulation_url: https://www.qcb.gov.qa/Documents/InformationSecurity/Cloud%20Computing%20Regulation.pdf
+  qfc_dpo_url: https://www.qfc.qa/en/operating-with-qfc/data-protection
   frameworks:
-    - PDPPL 13/2016
-    - NIA Policy v2.0 (National Information Assurance)
-    - QCB cloud guidelines (Qatar Central Bank)
+    - Qatar PDPPL (Law No. 13 of 2016)
+    - Council of Ministers Decision No. 17 of 2024 (Executive Regulations)
+    - NCSA National Information Assurance Policy (NIA Policy) v2.0
+    - Qatar Central Bank Cloud Computing Regulation
+    - QFC Data Protection Regulations 2021
+  classification_scheme:
+    - Public
+    - Internal
+    - Limited Access
+    - Restricted
+  cross_border_rule: Transfers outside Qatar require adequate protection or another permitted derogation, plus explicit governance records; special-nature data needs heightened approval and safeguards.
+  qfc_contrast: QFC entities follow a separate GDPR-style privacy regime under the QFC Data Protection Regulations 2021, even though infrastructure may still sit in Azure public regions.
   regulator_links:
-    - name: National Cyber Security Agency (NCSA)
-      url: https://ncsa.gov.qa/
+    - name: National Cyber Security Agency / National Data Privacy Office
+      url: https://assurance.ncsa.gov.qa/
+    - name: Ministry of Communications and Information Technology
+      url: https://www.mcit.gov.qa/en/
+    - name: Qatar Central Bank Cloud Computing Regulation
+      url: https://www.qcb.gov.qa/Documents/InformationSecurity/Cloud%20Computing%20Regulation.pdf
+    - name: QFC Data Protection Office
+      url: https://www.qfc.qa/en/operating-with-qfc/data-protection
 
 scenarios:
-  public_sector_tenant: "TBD"
-  financial_tenant: "TBD"
+  public_sector_tenant: Ministry of Communications and Information Technology (MCIT) digital public-services platform aligned to Qatar National Vision 2030
+  financial_tenant: A QCB-regulated bank launching a real-time merchant-payments platform in Doha
+  qfc_tenant: A QFC-licensed asset manager receiving investor-reporting and risk analytics extracts
 
 sponsor:
-  primary: TBD
+  primary: Microsoft Qatar
   community: Sovereignty Summit QA Chapter
 
-extra_challenges: []
+extra_challenges:
+  - challenge-qa-01-pdppl-nia-classification
+  - challenge-qa-02-qcb-payments-landing-zone

@@ -1,6 +1,6 @@
 iso2: ae
 name: United Arab Emirates
-summit_edition: "Sovereignty Summit UAE (TBD)"
+summit_edition: "Sovereignty Summit United Arab Emirates 2026"
 language: en
 
 azure:
@@ -9,30 +9,50 @@ azure:
   paired_region: uaecentral
   paired_region_display: UAE Central
   sovereign_region: false
+  in_country_region_available: true
   confidential_compute_skus:
     - Standard_DC2as_v5
+    - Standard_DC4as_v5
     - Standard_EC2as_v5
+    - Standard_EC4as_v5
   cmk_hsm_sku: Premium
-  azure_local_instance_location: westeurope
+  azure_local_instance_location: uaenorth
   arc_region: uaenorth
 
 regulatory:
-  primary_law: UAE Federal Data Protection Law (Federal Decree-Law No. 45 of 2021)
+  primary_law: UAE Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL)
+  executive_regulations: Cabinet Decision No. 44 of 2023 (Executive Regulations of the PDPL)
+  free_zone_carveout: DIFC and ADGM keep their own data-protection regimes, so jurisdiction depends on where the controller or processor is established and which free-zone legal perimeter the workload serves.
   frameworks:
-    - PDPL 45/2021
+    - UAE Federal PDPL (Federal Decree-Law No. 45 of 2021)
+    - PDPL Executive Regulations (Cabinet Decision No. 44 of 2023)
     - DIFC Data Protection Law (DIFC Law No. 5 of 2020)
     - ADGM Data Protection Regulations 2021
-    - CBUAE consumer protection regulation
+    - UAE Information Assurance Standards (TDRA / formerly NESA)
+    - CBUAE Consumer Protection Regulation and Consumer Protection Standards
+    - Dubai Health Data Law (Dubai Law No. 13 of 2019 Regulating ICT in Health Fields)
   regulator_links:
     - name: UAE Data Office
       url: https://u.ae/en/about-the-uae/digital-uae/data/data-office
+    - name: DIFC Commissioner of Data Protection
+      url: https://www.difc.ae/business/laws-regulations/data-protection/
+    - name: ADGM Office of Data Protection
+      url: https://www.adgm.com/operating-in-adgm/office-of-data-protection
+    - name: TDRA
+      url: https://tdra.gov.ae/
+    - name: Central Bank of the UAE
+      url: https://www.centralbank.ae/
+    - name: Dubai Health Authority
+      url: https://www.dha.gov.ae/
 
 scenarios:
-  public_sector_tenant: "TBD"
-  financial_tenant: "TBD"
+  public_sector_tenant: "An Abu Dhabi government entity modernising a citizen-services and case-management platform"
+  financial_tenant: "A DIFC-licensed bank modernising digital onboarding, payments and risk analytics"
 
 sponsor:
-  primary: TBD
-  community: Sovereignty Summit AE Chapter
+  primary: Microsoft UAE
+  community: Sovereignty Summit UAE Chapter
 
-extra_challenges: []
+extra_challenges:
+  - challenge-ae-01-jurisdiction-routing
+  - challenge-ae-02-confidential-banking
