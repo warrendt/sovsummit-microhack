@@ -20,13 +20,18 @@
 #      assignment so you can jump straight into Challenge 1.
 #
 # What --coach adds (in this order, before step 4 above):
-#   2-vcpu-quotas.ps1   - check current vCPU quota in southafricanorth
-#                         and (if --submit-quota-requests) submit increase requests
-#   3-rbac.ps1          - create the 'Deployment Validator' custom role and assign
-#                         it (plus Security Reader + Resource Policy Contributor)
-#                         to the configured LabUsers Entra group
-#   4-resource-groups.ps1 - create N numbered resource groups (labuser-01 ...)
-#                         and assign Owner to each lab user
+#   Create-MHUsers.ps1     - (--create-users) create N lab users in the
+#                            LabUsers group and a 24-hour Temporary Access
+#                            Pass per user, exported to an .xlsx file
+#   Create-AdminUsers.ps1  - (--create-users) create N admin users in the
+#                            AdminUsers group (password-based)
+#   2-vcpu-quotas.ps1      - check current vCPU quota in southafricanorth
+#                            and (if --submit-quota-requests) submit increase requests
+#   3-rbac.ps1             - create the 'Deployment Validator' custom role and assign
+#                            it (plus Security Reader + Resource Policy Contributor)
+#                            to the configured LabUsers Entra group
+#   4-resource-groups.ps1  - create N numbered resource groups (labuser-01 ...)
+#                            and assign Owner to each lab user
 #
 # Usage:
 #   ./build-za.sh                                # engineer mode, interactive
@@ -36,11 +41,15 @@
 #   ./build-za.sh --coach --attendees 30         # coach mode for 30 attendees
 #   ./build-za.sh --coach --lab-users-group LabUsers --attendees 30
 #   ./build-za.sh --coach --submit-quota-requests
+#   ./build-za.sh --coach --create-users --attendees 30 \
+#                 --admin-password '<pw>' --event-start-date 2026-02-10T00:00:00
 #
 # Requirements for --coach:
 #   - pwsh (PowerShell 7+) on PATH
 #   - Az.Accounts, Az.Resources, Microsoft.Graph.Groups PowerShell modules
-#   - An existing Entra ID group (default: 'LabUsers') containing the attendees
+#   - For --create-users also: Microsoft.Graph.Users,
+#       Microsoft.Graph.Identity.SignIns, ImportExcel; User Administrator +
+#       Group Administrator roles in Entra ID; Entra ID Premium P2 for TAP
 #   - Owner + User Access Administrator at the subscription scope
 #
 # Cleanup:
@@ -62,6 +71,13 @@ LAB_USERS_GROUP="LabUsers"
 ATTENDEES=10
 RG_PREFIX="labuser-"
 SUBMIT_QUOTA=0
+CREATE_USERS=0
+LAB_USER_COUNT=""
+ADMIN_USER_COUNT=5
+ADMIN_GROUP="AdminUsers"
+ADMIN_PASSWORD=""
+EVENT_START_DATE=""
+TAP_EXPORT_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -74,6 +90,13 @@ while [[ $# -gt 0 ]]; do
     --attendees)          ATTENDEES="$2"; shift 2 ;;
     --rg-prefix)          RG_PREFIX="$2"; shift 2 ;;
     --submit-quota-requests) SUBMIT_QUOTA=1; shift ;;
+    --create-users)       CREATE_USERS=1; shift ;;
+    --lab-user-count)     LAB_USER_COUNT="$2"; shift 2 ;;
+    --admin-user-count)   ADMIN_USER_COUNT="$2"; shift 2 ;;
+    --admin-group)        ADMIN_GROUP="$2"; shift 2 ;;
+    --admin-password)     ADMIN_PASSWORD="$2"; shift 2 ;;
+    --event-start-date)   EVENT_START_DATE="$2"; shift 2 ;;
+    --tap-export)         TAP_EXPORT_PATH="$2"; shift 2 ;;
     -h|--help)
       grep '^#' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
@@ -140,12 +163,40 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # scripts. In the rendered tree that's: <bundle>/bootstrap/.. == <bundle>/
 BUNDLE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PREP_DIR="$BUNDLE_ROOT/resources/subscription-preparations"
+HELPERS_DIR="$BUNDLE_ROOT/resources/preparation-helpers"
 
 if [[ $COACH -eq 1 ]]; then
   if [[ ! -d "$PREP_DIR" ]]; then
     echo "ERROR: expected coach prep scripts at $PREP_DIR but did not find them." >&2
     echo "       Make sure you are running build-za.sh from a rendered build/za/bootstrap/ folder." >&2
     exit 1
+  fi
+
+  if [[ $CREATE_USERS -eq 1 ]]; then
+    if [[ ! -d "$HELPERS_DIR" ]]; then
+      echo "ERROR: --create-users requires preparation helpers at $HELPERS_DIR." >&2
+      exit 1
+    fi
+    if [[ -z "$ADMIN_PASSWORD" ]]; then
+      read -r -s -p "Enter password for admin lab users: " ADMIN_PASSWORD; echo
+      [[ -n "$ADMIN_PASSWORD" ]] || { echo "Admin password is required." >&2; exit 1; }
+    fi
+
+    LU_COUNT="${LAB_USER_COUNT:-$ATTENDEES}"
+    : "${TAP_EXPORT_PATH:=$BUNDLE_ROOT/TemporaryAccessPasses.xlsx}"
+
+    echo
+    echo "==> [coach] Create-MHUsers.ps1 — creating $LU_COUNT lab users in group '$LAB_USERS_GROUP' (tenant scope)..."
+    MH_ARGS=(-UserCount "$LU_COUNT" -GroupName "$LAB_USERS_GROUP" -ExportPath "$TAP_EXPORT_PATH" -NonInteractive)
+    [[ -n "$EVENT_START_DATE" ]] && MH_ARGS+=(-EventStartDate "$EVENT_START_DATE")
+    pwsh -NoLogo -NonInteractive -File "$HELPERS_DIR/Create-MHUsers.ps1" "${MH_ARGS[@]}"
+
+    echo
+    echo "==> [coach] Create-AdminUsers.ps1 — creating $ADMIN_USER_COUNT admin users in group '$ADMIN_GROUP' (tenant scope)..."
+    pwsh -NoLogo -NonInteractive -Command "
+      \$pw = ConvertTo-SecureString -String '$ADMIN_PASSWORD' -AsPlainText -Force
+      & '$HELPERS_DIR/Create-AdminUsers.ps1' -UserCount $ADMIN_USER_COUNT -GroupName '$ADMIN_GROUP' -Password \$pw
+    "
   fi
 
   echo

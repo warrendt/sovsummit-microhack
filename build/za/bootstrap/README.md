@@ -56,6 +56,29 @@ Adds the upstream multi-attendee prep before deploying the foundation:
    groups (`labuser-01`, `labuser-02`, …) and assigns Owner to each lab
    user.
 
+#### Optional: also create the lab users (`--create-users` / `-CreateUsers`)
+
+Adds two more upstream steps **before** the three above:
+
+- **`Create-MHUsers.ps1`** — creates `N` lab users in the `LabUsers`
+  group and a 24-hour Temporary Access Pass per user, exported to
+  `<bundle>/TemporaryAccessPasses.xlsx`. Requires Entra ID Premium P2
+  for TAP and User/Group Administrator roles in Entra.
+- **`Create-AdminUsers.ps1`** — creates `N` admin users in the
+  `AdminUsers` group (password-based; pass via `--admin-password`).
+
+```bash
+./build-za.sh --coach --create-users --attendees 30 \
+              --admin-password '<password>' \
+              --event-start-date 2026-02-10T00:00:00
+pwsh ./build-za.ps1 -Coach -CreateUsers -Attendees 30 `
+              -AdminPassword (Read-Host -AsSecureString) `
+              -EventStartDate '2026-02-10'
+```
+
+Extra modules required for `--create-users`: `Microsoft.Graph.Users`,
+`Microsoft.Graph.Identity.SignIns`, `ImportExcel`.
+
 ```bash
 ./build-za.sh --coach --attendees 30
 ./build-za.sh --coach --lab-users-group LabUsers --attendees 30 --submit-quota-requests

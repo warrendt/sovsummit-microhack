@@ -70,7 +70,15 @@ param(
     [string]$LabUsersGroup = 'LabUsers',
     [int]$Attendees = 10,
     [string]$ResourceGroupPrefix = 'labuser-',
-    [switch]$SubmitQuotaRequests
+    [switch]$SubmitQuotaRequests,
+
+    [switch]$CreateUsers,
+    [int]$LabUserCount = 0,
+    [int]$AdminUserCount = 5,
+    [string]$AdminGroup = 'AdminUsers',
+    [securestring]$AdminPassword,
+    [datetime]$EventStartDate,
+    [string]$TapExportPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -137,10 +145,38 @@ Write-Host "    providers registered."
 $scriptDir  = Split-Path -Parent $PSCommandPath
 $bundleRoot = Split-Path -Parent $scriptDir
 $prepDir    = Join-Path $bundleRoot 'resources/subscription-preparations'
+$helpersDir = Join-Path $bundleRoot 'resources/preparation-helpers'
 
 if ($Coach) {
     if (-not (Test-Path $prepDir)) {
         throw "Expected coach prep scripts at $prepDir but did not find them. Run this from a rendered build/za/bootstrap/ folder."
+    }
+
+    if ($CreateUsers) {
+        if (-not (Test-Path $helpersDir)) {
+            throw "-CreateUsers requires preparation helpers at $helpersDir."
+        }
+        if (-not $AdminPassword) {
+            $AdminPassword = Read-Host -Prompt "Enter password for admin lab users" -AsSecureString
+        }
+
+        $lu = if ($LabUserCount -gt 0) { $LabUserCount } else { $Attendees }
+        if (-not $TapExportPath) { $TapExportPath = Join-Path $bundleRoot 'TemporaryAccessPasses.xlsx' }
+
+        Write-Host ""
+        Write-Host "==> [coach] Create-MHUsers.ps1 — creating $lu lab users in group '$LabUsersGroup' (tenant scope)..." -ForegroundColor Cyan
+        $mhArgs = @{
+            UserCount     = $lu
+            GroupName     = $LabUsersGroup
+            ExportPath    = $TapExportPath
+            NonInteractive = $true
+        }
+        if ($EventStartDate) { $mhArgs.EventStartDate = $EventStartDate }
+        & (Join-Path $helpersDir 'Create-MHUsers.ps1') @mhArgs
+
+        Write-Host ""
+        Write-Host "==> [coach] Create-AdminUsers.ps1 — creating $AdminUserCount admin users in group '$AdminGroup' (tenant scope)..." -ForegroundColor Cyan
+        & (Join-Path $helpersDir 'Create-AdminUsers.ps1') -UserCount $AdminUserCount -GroupName $AdminGroup -Password $AdminPassword
     }
 
     Write-Host ""
