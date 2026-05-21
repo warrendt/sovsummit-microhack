@@ -15,8 +15,10 @@ TemporaryAccessPasses.xlsx
 # --- User-creation helpers (tenant scope, partner-only) ---
 common/resources/preparation-helpers/Create-MHUsers.ps1
 common/resources/preparation-helpers/Create-AdminUsers.ps1
+common/resources/preparation-helpers/Retry-TAPs.ps1
 build/*/resources/preparation-helpers/Create-MHUsers.ps1
 build/*/resources/preparation-helpers/Create-AdminUsers.ps1
+build/*/resources/preparation-helpers/Retry-TAPs.ps1
 
 # --- Local sandbox / venv / build caches ---
 .venv/

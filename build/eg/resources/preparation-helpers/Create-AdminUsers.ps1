@@ -20,8 +20,18 @@ if (-not $SkipModuleInstall) {
     }
 }
 
-if (-not (Get-MgContext)) {
-    Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","UserAuthenticationMethod.ReadWrite.All" -UseDeviceCode
+$requiredScopes = @('User.ReadWrite.All','Group.ReadWrite.All','UserAuthenticationMethod.ReadWrite.All')
+$ctx = Get-MgContext
+$missingScopes = @()
+if ($ctx) {
+    $missingScopes = $requiredScopes | Where-Object { $_ -notin $ctx.Scopes }
+}
+if (-not $ctx -or $missingScopes.Count -gt 0) {
+    if ($ctx -and $missingScopes.Count -gt 0) {
+        Write-Host "Existing Graph context is missing scopes: $($missingScopes -join ', '). Reconnecting..." -ForegroundColor Yellow
+        try { Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null } catch {}
+    }
+    Connect-MgGraph -Scopes $requiredScopes -UseDeviceCode
 }
 
 Get-MgContext
