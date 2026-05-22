@@ -41,7 +41,6 @@ In this country edition the following challenges run in order:
 4. Confidential VMs — [`challenges/challenge-04.md`](challenges/challenge-04.md)
 5. Confidential AKS — [`challenges/challenge-05.md`](challenges/challenge-05.md)
 6. Azure Local + Arc — [`challenges/challenge-06.md`](challenges/challenge-06.md)
-7. **🇿🇦 POPIA data-residency enforcement** — [`challenges/challenge-sa-01-popia-residency.md`](challenges/challenge-sa-01-popia-residency.md)
 
 ## Build the environment
 

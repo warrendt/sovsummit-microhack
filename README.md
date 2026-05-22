@@ -21,7 +21,6 @@ sovereignty pattern.
 | 4  | **Confidential VMs + Attestation**     | DCasv5/DCesv5, Azure Attestation, secure-boot evidence            |
 | 5  | **Sovereign AKS**                      | AKS w/ confidential nodes, KEDA, CVM attestation pod              |
 | 6  | **Azure Arc + Azure Local on-prem**    | ArcBox + LocalBox, hybrid sovereignty, Defender for Cloud         |
-| SA-01 | **POPIA data-residency landing zone** _(ZA add-on)_ | POPIA s.72 cross-border controls, BCR exception evidence |
 
 Each country folder contains the **rendered, ready-to-run** material — there is
 no template or build step. To read challenge 1 for South Africa, open
