@@ -247,12 +247,16 @@ Write-Host ""
 $deploymentName = "localbox-deployment-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
 try {
-    az deployment group create `
-        --name $deploymentName `
-        --resource-group $ResourceGroupName `
-        --template-file $templateFile `
-        --parameters $paramsFile `
-        --no-wait
+    $azArgs = @(
+        'deployment','group','create',
+        '--name', $deploymentName,
+        '--resource-group', $ResourceGroupName,
+        '--template-file', $templateFile,
+        '--parameters', ('@' + $paramsFile),
+        '--no-wait'
+    )
+    Write-Host "Invoking: az $($azArgs -join ' ')" -ForegroundColor DarkGray
+    & az @azArgs
     if ($LASTEXITCODE -ne 0) {
         throw "az deployment group create failed with exit code $LASTEXITCODE. Common causes: missing template params, RG blocked by residency policy (add rg-localbox to notScopes), or quota."
     }

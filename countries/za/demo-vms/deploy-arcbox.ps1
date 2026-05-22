@@ -169,14 +169,18 @@ Write-Host ""
 try {
 
     $deploymentName = "arcbox-deployment-$(Get-Random -Maximum 9999)"
-    $waitFlag = if ($WaitAndDisableAutoShutdown) { @() } else { @('--no-wait') }
 
-    az deployment group create `
-        --name $deploymentName `
-        --resource-group $ResourceGroupName `
-        --template-uri $templateUri `
-        --parameters $paramsFile `
-        @waitFlag
+    $azArgs = @(
+        'deployment','group','create',
+        '--name', $deploymentName,
+        '--resource-group', $ResourceGroupName,
+        '--template-uri', $templateUri,
+        '--parameters', ('@' + $paramsFile)
+    )
+    if (-not $WaitAndDisableAutoShutdown) { $azArgs += '--no-wait' }
+
+    Write-Host "Invoking: az $($azArgs -join ' ')" -ForegroundColor DarkGray
+    & az @azArgs
     if ($LASTEXITCODE -ne 0) {
         throw "az deployment group create failed with exit code $LASTEXITCODE. See output above. Common causes: missing template params, RG blocked by residency policy (add rg-arcbox to notScopes), or quota."
     }
