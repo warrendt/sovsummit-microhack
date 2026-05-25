@@ -121,8 +121,7 @@ AZURE_LOCAL_INSTANCE_LOCATION="westeurope"  # subject to LocalBox ValidateSet
 DEMO_ADMIN_USERNAME="arcdemo"
 DEMO_ADMIN_PASSWORD=""
 
-# Microsoft-internal coach helpers (Create-MHUsers, Create-AdminUsers,
-# Repair-LabUsers, Retry-TAPs, New-SummitSecurityGroup, Set-CAExclusion).
+# Private coach helpers (user / TAP / CA-exclusion provisioning scripts).
 # These do NOT ship with the public repo. Discovery order:
 #   1. --internal-helpers-path <dir>            (CLI flag)
 #   2. $SOVSUMMIT_INTERNAL_HELPERS              (env var)
@@ -233,7 +232,7 @@ COUNTRY_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PREP_DIR="$COUNTRY_ROOT/subscription-prep"
 DEMO_DIR="$COUNTRY_ROOT/demo-vms"
 
-# Resolve internal helpers (Microsoft-internal, out-of-repo).
+# Resolve internal helpers (private, out-of-repo).
 if [[ -n "$INTERNAL_HELPERS_PATH" ]]; then
   HELPERS_DIR="$INTERNAL_HELPERS_PATH"
 elif [[ -n "${SOVSUMMIT_INTERNAL_HELPERS:-}" ]]; then
@@ -252,7 +251,7 @@ if [[ $COACH -eq 1 ]]; then
   [[ $CREATE_USERS -eq 1 || $CREATE_SUMMIT_GROUP -eq 1 || $APPLY_CA_EXCLUSION -eq 1 ]] && needs_helpers=1
   if [[ $needs_helpers -eq 1 && ! -d "$HELPERS_DIR" ]]; then
     echo "ERROR: --create-users / --create-summit-group / --apply-ca-exclusion require the" >&2
-    echo "       Microsoft-internal preparation helpers, expected at:" >&2
+    echo "       private preparation helpers, expected at:" >&2
     echo "         $HELPERS_DIR" >&2
     echo "       Override with --internal-helpers-path <dir> or \$SOVSUMMIT_INTERNAL_HELPERS." >&2
     echo "       See https://github.com/warrendt/sovsummit-microhack/blob/main/README.md for details." >&2

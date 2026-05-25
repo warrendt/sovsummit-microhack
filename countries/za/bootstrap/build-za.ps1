@@ -82,7 +82,7 @@ param(
     [string]$TapExportPath,
     # <<<END_INTERNAL_ONLY>>>
 
-    # Microsoft-internal coach helpers (out-of-repo). Discovery order:
+    # Private coach helpers (out-of-repo). Discovery order:
     #   1. -InternalHelpersPath <dir>             (this parameter)
     #   2. $env:SOVSUMMIT_INTERNAL_HELPERS         (env var)
     #   3. ~/Repos/SovSummit-Internal/preparation-helpers  (default)
@@ -171,7 +171,7 @@ if ($Coach) {
     # <<<INTERNAL_ONLY>>>
     if ($CreateUsers) {
         if (-not (Test-Path $helpersDir)) {
-            throw "-CreateUsers requires the Microsoft-internal preparation helpers at $helpersDir. Override with -InternalHelpersPath <dir> or `$env:SOVSUMMIT_INTERNAL_HELPERS."
+            throw "-CreateUsers requires the private preparation helpers at $helpersDir. Override with -InternalHelpersPath <dir> or `$env:SOVSUMMIT_INTERNAL_HELPERS."
         }
         if (-not $AdminPassword) {
             $AdminPassword = Read-Host -Prompt "Enter password for admin lab users" -AsSecureString

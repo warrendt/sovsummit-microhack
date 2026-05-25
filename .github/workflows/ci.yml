@@ -89,7 +89,7 @@ jobs:
           set -e
           for f in INTERNAL.md DRY-RUN.md TemporaryAccessPasses.xlsx AdminLabUserPasswords.xlsx; do
             if [ -e "$f" ]; then
-              echo "::error::internal artefact '$f' must not live in the repo — move to ~/Repos/SovSummit-Internal/"
+              echo "::error::internal artefact '$f' must not live in the repo — move it to your private helpers directory"
               exit 1
             fi
           done

@@ -96,43 +96,11 @@ Cleanup with `./teardown-za.sh --apply --remove-users --purge-keyvault`.
 |-----------------------|---------------------------------------------------------------------------------|
 | `--deploy-arcbox`     | ArcBox-full into `rg-arcbox` in `swedencentral` (~30 min, ~hundreds USD/day)     |
 | `--deploy-localbox`   | LocalBox host VM + Azure Local instance (~4-6 h, ~thousands USD/day)             |
-| `--create-users`      | Create `N` lab + admin users + Temporary Access Passes (Microsoft-internal only) |
+| `--create-users`      | Create `N` lab + admin users + Temporary Access Passes (requires private helpers — see CONTRIBUTING) |
 
 ArcBox + LocalBox feed **challenge 6** (the on-prem sovereignty story). They
 are shared coach demos — attendees observe them; the policy posture is set up
 so the residency policy does **not** block them.
-
----
-
-## Microsoft-internal helpers (do not ship here)
-
-The coach flags `--create-users`, `--create-summit-group`, and
-`--apply-ca-exclusion` rely on six PowerShell helpers that touch the
-MCAPS-internal tenant (TAP issuance, AdminUser provisioning, CA policy
-exclusion, etc.). Those scripts and the prep PDF live **outside this repo**
-at:
-
-```
-~/Repos/SovSummit-Internal/
-├── README.md
-├── docs/{INTERNAL.md, DRY-RUN.md, Microhack_Prep.pdf}
-└── preparation-helpers/
-    ├── Create-MHUsers.ps1
-    ├── Create-AdminUsers.ps1
-    ├── Repair-LabUsers.ps1
-    ├── Retry-TAPs.ps1
-    ├── New-SummitSecurityGroup.ps1
-    └── Set-CAExclusion.ps1
-```
-
-Discovery order used by `build-za.sh` / `build-za.ps1`:
-
-1. `--internal-helpers-path <dir>` flag
-2. `$SOVSUMMIT_INTERNAL_HELPERS` env var
-3. `~/Repos/SovSummit-Internal/preparation-helpers` (default)
-
-If you only want **engineer mode** or **coach mode without user provisioning**,
-none of this is required — the repo is fully self-contained for those flows.
 
 ---
 

@@ -61,13 +61,12 @@ checks on every push.
 
 ## Sensitive content
 
-The Microsoft-internal preparation helpers (user / TAP / CA-exclusion scripts,
-the prep PDF, internal docs) **must not** be committed here. They live at
-`~/Repos/SovSummit-Internal/` on coach machines and are loaded by
-`build-*.sh` / `build-*.ps1` via `--internal-helpers-path`, the
-`$SOVSUMMIT_INTERNAL_HELPERS` env var, or the default path. See the
-[main README](README.md#microsoft-internal-helpers-do-not-ship-here) for the
-discovery contract.
+Private preparation helpers (user / TAP / CA-exclusion scripts, prep PDFs,
+internal docs) **must not** be committed to this repo. Coaches keep them in a
+separate private location and point the bootstrap at it via the
+`--internal-helpers-path <dir>` flag or the `$SOVSUMMIT_INTERNAL_HELPERS`
+environment variable. Without those helpers the repo still runs end-to-end in
+**engineer mode** and in **coach mode without `--create-users`**.
 
 If you ever need to redact the bootstrap script for a public mirror, the
 internal-only blocks are wrapped in `# <<<INTERNAL_ONLY>>> ... # <<<END_INTERNAL_ONLY>>>`
