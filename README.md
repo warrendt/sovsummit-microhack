@@ -26,6 +26,8 @@ Each country folder contains the **rendered, ready-to-run** material — there i
 no template or build step. To read challenge 1 for South Africa, open
 [`countries/za/challenges/challenge-01.md`](countries/za/challenges/challenge-01.md).
 
+> **Attending the live lab?** Start at [`countries/za/PREREQUISITES.md`](countries/za/PREREQUISITES.md) — it's the 5-minute sign-in + env-var setup every other doc assumes you've done.
+
 ---
 
 ## Country index

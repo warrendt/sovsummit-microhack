@@ -18,7 +18,7 @@ Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) 
 
 ## Scenario Context
 
-You are a security architect at a European financial services organization that processes highly sensitive customer data and must comply with strict data sovereignty and protection requirements. Your organization has determined that traditional encryption at rest and in transit is insufficient for protecting high-value workloads.
+You are a security architect at a South African tier-1 retail bank that processes payroll and cardholder data subject to **POPIA** (Protection of Personal Information Act) and **SARB Directive 3/2018** (cloud computing and offshoring of data). Your bank has determined that traditional encryption at rest and in transit is insufficient for protecting the highest-value workloads — you need attestation-backed confidentiality for the runtime memory itself.
 
 Your mandate includes:
 
@@ -86,7 +86,7 @@ The sample application and deployment patterns have been adapted for this MicroH
 
 ### Resources Being Deployed
 
-The following resources will be created in the `North Europe` Azure region:
+The following resources will be created in the `southafricanorth` Azure region:
 
 - **1 Attestation Provider** - Microsoft Azure Attestation (MAA) service for verifying TEE integrity
 - **1 Virtual Network** - Isolated network with VM and Bastion subnets
@@ -620,7 +620,7 @@ In this challenge, you successfully implemented and validated Azure Confidential
    - Bastion uses Key Vault integration for authentication
 
 4. **Network Range**:
-   - VNet (North Europe): `10.10.0.0/24`
+   - VNet (South Africa North): `10.10.0.0/24`
      - VM Subnet: `10.10.0.0/26`
      - Bastion Subnet: `10.10.0.64/26`
 
@@ -634,3 +634,7 @@ In this challenge, you successfully implemented and validated Azure Confidential
    - OS Disks - Created automatically with the VMs
 
 8. **Key Vault Access**: Ensure your Azure account has appropriate permissions to read secrets from Key Vault when using Bastion
+
+---
+
+> **EU original:** this walkthrough is the South Africa edition. The original EU/Northern-Europe sovereign-cloud version lives in the upstream [Microsoft Sovereign Cloud MicroHack](https://github.com/microsoft/MicroHack/tree/main/03-Azure/01-03-Infrastructure/01_Sovereign_Cloud).

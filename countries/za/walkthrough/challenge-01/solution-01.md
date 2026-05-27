@@ -16,13 +16,13 @@ Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) 
 
 ## Scenario Context
 
-You are a cloud architect at a European organization that must comply with data sovereignty requirements. Your workloads contain sensitive data that must remain within EU sovereign regions. Additionally, regulatory requirements mandate:
+You are a cloud platform lead at the **Department of Home Affairs (DHA)** digital identity workload — a South African public-sector estate that must comply with **POPIA** (Protection of Personal Information Act, 2013) and the Information Regulator's data-residency expectations. Your workloads contain personal information of South African data subjects that must remain inside South African Azure regions. Regulatory requirements mandate:
 
-- **Geographic restrictions**: All resources must be deployed only in approved sovereign regions (Norway East, Germany North, North Europe)
-- **Data classification**: All resources must be tagged with appropriate data classification labels
-- **Network isolation**: Sensitive resources must not expose public IP addresses
-- **Access control**: Only authorized teams should have access, following least-privilege principles
-- **Compliance monitoring**: Non-compliant resources must be identified and remediated
+- **Geographic restrictions**: All resources must be deployed only in approved South Africa regions (`southafricanorth`, `southafricawest`) — POPIA s.72.
+- **Data classification**: All resources must be tagged with appropriate data classification labels so the platform team can answer "where is our restricted data?" in seconds — POPIA s.14.
+- **Network isolation**: Sensitive resources must not expose public IP addresses; private endpoints are mandatory — POPIA s.19.
+- **Access control**: Only authorized teams should have access, following least-privilege principles — POPIA s.19 + s.55.
+- **Compliance monitoring**: Non-compliant resources must be identified and remediated, with an audit-grade evidence trail for the Information Regulator.
 
 In this challenge, you'll implement these controls using Azure Policy and RBAC.
 
@@ -58,41 +58,25 @@ In this challenge, you'll implement these controls using Azure Policy and RBAC.
 
 💡 **The first step in enforcing sovereignty is ensuring resources can only be deployed in approved geographic locations.**
 
-### Step 1: Configure Environment Variables
+### Step 1: Confirm Environment Variables
 
-Open Azure Cloud Shell:
-
-![image](./img/cloud-shell.jpg)
-
-![image](./img/cloud-shell2.jpg)
-
-Set up the variables that will be used throughout this challenge:
-
-> [!IMPORTANT]
-> The Azure CLI commands in this walkthrough use **bash** syntax and will not work directly in PowerShell. Use **Azure Cloud Shell (Bash)** for the best experience. If running locally on Windows, use **WSL2** (Windows Subsystem for Linux) to run a bash shell. You can install the Azure CLI inside WSL with:
->
-> ```bash
-> curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-> ```
+You should already have `ATTENDEE_ID`, `RESOURCE_GROUP`, `LOCATION` and `SUBSCRIPTION_ID` set from the [Attendee Prerequisites](../../PREREQUISITES.md). Verify with:
 
 ```bash
-# Set common variables
-# Customize RESOURCE_GROUP for each participant
-RESOURCE_GROUP="labuser-xx"  # Change this for each participant (e.g., labuser-01, labuser-02, ...)
-
-ATTENDEE_ID="${RESOURCE_GROUP}"
-SUBSCRIPTION_ID="xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx"  # Replace with your subscription ID
-LOCATION="southafricanorth" # Sovereignty Summit South Africa 2026 default — primary region for South Africa
-
-# Generate friendly display names with attendee ID
-DISPLAY_PREFIX="Lab User-${ATTENDEE_ID#labuser-}"  # Converts "labuser-01" to "Lab User-01"
-GROUP_PREFIX="Lab-User-${ATTENDEE_ID#labuser-}"    # Converts "labuser-01" to "Lab-User-01"
+echo "Attendee: $ATTENDEE_ID  |  RG: $RESOURCE_GROUP  |  Region: $LOCATION  |  Sub: $SUBSCRIPTION_ID"
 ```
 
-🔑 **Best Practice**: Setting variables once at the beginning ensures consistency across all commands and reduces the chance of errors from manual editing.
+If any are empty, jump back to [PREREQUISITES.md](../../PREREQUISITES.md) and finish the one-time setup before continuing.
 
-> [!WARNING]
-> If your Azure Cloud Shell session times out (e.g. during a break), the variables defined above will be lost and must be re-defined before continuing. We recommend saving them in a local text file on your machine so you can quickly copy and paste them back into a new session.
+This walkthrough also uses two derived display names:
+
+```bash
+DISPLAY_PREFIX="Lab User-${ATTENDEE_ID#labuser-}"  # "labuser-07" -> "Lab User-07"
+GROUP_PREFIX="Lab-User-${ATTENDEE_ID#labuser-}"    # "labuser-07" -> "Lab-User-07"
+```
+
+> [!IMPORTANT]
+> The Azure CLI commands in this walkthrough use **bash** syntax. Use **Azure Cloud Shell (Bash)** for the easiest experience. If running locally on Windows, use WSL2.
 
 ### Step 2: Identify the Built-in Policy
 
@@ -115,7 +99,7 @@ The **"Allowed locations"** built-in policy restricts which locations users can 
    - **Exclusions**: Leave empty
    - **Policy definition**: Search for "Allowed locations"
    - **Assignment name**: Use the format "Lab User-{YourAttendeeNumber} - Restrict to Sovereign Regions" (e.g., "Lab User-01 - Restrict to Sovereign Regions")
-   - **Description**: "Restrict all resource deployments to EU sovereign regions for data residency compliance"
+   - **Description**: "Restrict all resource deployments to South Africa regions for POPIA data-residency compliance"
 
 ![image](./img/challenge1-policy-scope.jpg)
 
@@ -633,7 +617,7 @@ Expected result: ❌ **Error** - Location 'westus' is not allowed
 ### Test 2: Deploy to a Sovereign Region (Should Succeed)
 
 ```bash
-# Create a storage account in Norway East (should succeed)
+# Create a storage account in southafricanorth (should succeed)
 STORAGE_NAME="sovereignstore$RANDOM"
 
 az storage account create \
@@ -892,7 +876,7 @@ To verify you've successfully completed this challenge, confirm the following:
 1. **Location Restrictions**: Attempt to create a resource in a non-sovereign region (should fail)
 2. **Tagging Requirements**: Attempt to create a resource without required tags (should fail)
 3. **Public IP Block**: Attempt to create a public IP address (should fail)
-4. **Compliant Deployment**: Successfully create a resource in Norway East with proper tags
+4. **Compliant Deployment**: Successfully create a resource in `southafricanorth` with proper tags
 
 ### ✅ RBAC Validation
 
@@ -999,3 +983,7 @@ In **Challenge 2**, you'll implement encryption at rest using Customer-Managed K
 - [Azure RBAC built-in roles](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles)
 - [Azure Governance documentation](https://learn.microsoft.com/azure/governance/)
 - [Well-Architected Framework - Security](https://learn.microsoft.com/azure/architecture/framework/security/)
+
+---
+
+> **EU original:** this walkthrough is the South Africa edition. The original EU/Northern-Europe sovereign-cloud version (Norway East / Germany North / North Europe, GDPR framing) lives in the upstream [Microsoft Sovereign Cloud MicroHack](https://github.com/microsoft/MicroHack/tree/main/03-Azure/01-03-Infrastructure/01_Sovereign_Cloud).

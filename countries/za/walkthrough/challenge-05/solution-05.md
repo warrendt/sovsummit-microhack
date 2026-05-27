@@ -21,7 +21,7 @@ Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) 
 
 ## Scenario Context
 
-You are a cloud security engineer at a European healthcare organization that processes sensitive patient data in containerized applications. Your organization has adopted Kubernetes (AKS) for container orchestration but must comply with strict data protection regulations including GDPR and healthcare privacy requirements.
+You are a cloud security engineer at a South African tier-1 retail bank running real-time fraud-detection inference for cardholder transactions. Your team has adopted Kubernetes (AKS) for low-latency model serving but must comply with **POPIA**, **SARB Directive 3/2018**, and the **PCI-DSS** controls the bank inherits from its card schemes — model weights and per-transaction features must never leak to the underlying host, even from a compromised cluster operator.
 
 Your mandate includes:
 
@@ -418,3 +418,7 @@ In this challenge, you successfully deployed and validated Azure Confidential Co
 - [Microsoft Azure Attestation](https://learn.microsoft.com/azure/attestation/)
 - [AMD SEV-SNP Technology](https://www.amd.com/en/developer/sev.html)
 - [Kubernetes Node Selectors](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/)
+
+---
+
+> **EU original:** this walkthrough is the South Africa edition. The original EU/Northern-Europe sovereign-cloud version lives in the upstream [Microsoft Sovereign Cloud MicroHack](https://github.com/microsoft/MicroHack/tree/main/03-Azure/01-03-Infrastructure/01_Sovereign_Cloud).

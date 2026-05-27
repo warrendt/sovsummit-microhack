@@ -18,7 +18,7 @@ Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) 
 
 ## Scenario Context
 
-You are a security architect at a European financial services organization that processes highly sensitive customer data and must comply with strict data sovereignty and protection requirements. Your organization has determined that traditional encryption at rest and in transit is insufficient for protecting high-value workloads.
+You are a security architect at a South African tier-1 retail bank that processes payroll and cardholder data subject to **POPIA** (Protection of Personal Information Act) and **SARB Directive 3/2018** (cloud computing and offshoring of data). Your bank has determined that traditional encryption at rest and in transit is insufficient for protecting the highest-value workloads — you need attestation-backed confidentiality for the runtime memory itself.
 
 Your mandate includes:
 
@@ -88,7 +88,7 @@ The sample application and deployment patterns have been adapted for this MicroH
 
 ### Resources Being Deployed
 
-The following resources will be created in the `North Europe` Azure region:
+The following resources will be created in the `southafricanorth` Azure region:
 
 - **1 Attestation Provider** - Microsoft Azure Attestation (MAA) service for verifying TEE integrity
 - **1 Virtual Network** - Isolated network with VM and Bastion subnets
@@ -115,7 +115,7 @@ This setup implements a zero-trust security model:
 Throughout this guide, you'll need to use consistent naming. Choose your own values:
 
 - **ATTENDEE_ID**: `labuser-xx` (Change this for each participant)
-- **LOCATION**: `North Europe`
+- **LOCATION**: `southafricanorth`
 - **RESOURCE_GROUP**: `{ATTENDEE_ID}` (replace with your ATTENDEE_ID)
 
 For globally unique resources, append a random 6-character suffix:
@@ -135,7 +135,7 @@ For globally unique resources, append a random 6-character suffix:
 | Step | Action | Screenshot |
 |------|--------|------------|
 | 1. Navigate to the [Azure Portal](https://portal.azure.com)<br>2. In the search bar at the top, type **"Resource groups"** and select it<br>3. Click **+ Create** | | ![Resource Groups](./images/select-resource-groups.png) |
-| 4. Fill in the details:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `<ATTENDEE_ID>` (use your ATTENDEE_ID)<br>   - **Region**: `North Europe` | | ![Create Resource Group](./images/create-resource-group.png) |
+| 4. Fill in the details:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `<ATTENDEE_ID>` (use your ATTENDEE_ID)<br>   - **Region**: `southafricanorth` | | ![Create Resource Group](./images/create-resource-group.png) |
 | 5. Click **Review + create**<br>6. Click **Create** | | |
 
 
@@ -148,7 +148,7 @@ For globally unique resources, append a random 6-character suffix:
 | Step | Action | Screenshot |
 |------|--------|------------|
 | 1. In the search bar, type **"Key vaults"** and select it<br>2. Click **+ Create** | | |
-| 3. Fill in the **Basics** tab:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `rg-cc-attendee01`<br>   - **Key vault name**: `kv-cc-a1b2c3` (use your random suffix)<br>   - **Region**: `North Europe`<br>   - **Pricing tier**: `Standard` | | ![Create Key vault](./images/kv-create.png) |
+| 3. Fill in the **Basics** tab:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `${ATTENDEE_ID}`<br>   - **Key vault name**: `kv-cc-a1b2c3` (use your random suffix)<br>   - **Region**: `southafricanorth`<br>   - **Pricing tier**: `Standard` | | ![Create Key vault](./images/kv-create.png) |
 | 4. Click on the **Access configuration** tab:<br>   - **Permission model**: Select **Azure role-based access control**<br>   - Check ✅ **Azure Virtual Machines for deployment**<br>   - Check ✅ **Azure Resource Manager for template deployment** | | ![Key Vault Access configuration](./images/kv-access-config.png) |
 | 5. Click **Review + create**<br>6. Click **Create**<br>7. Wait for deployment to complete, then click **Go to resource** | | |
 
@@ -185,7 +185,7 @@ For globally unique resources, append a random 6-character suffix:
 | Step | Action | Screenshot |
 |------|--------|------------|
 | 1. In the search bar, type **"Attestation providers"** and select it<br>2. Click **+ Create** | | ![Attestation service](./images/create-attest-service.png) |
-| 3. Fill in the details:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `rg-cc-attendee01`<br>   - **Name**: `attesta1b2c3` (use your random suffix, **only alphanumeric characters, no hyphens**)<br>   - **Region**: `North Europe` | | ![Create Attestation service](./images/review-create-attest-service.png) |
+| 3. Fill in the details:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `${ATTENDEE_ID}`<br>   - **Name**: `attesta1b2c3` (use your random suffix, **only alphanumeric characters, no hyphens**)<br>   - **Region**: `southafricanorth` | | ![Create Attestation service](./images/review-create-attest-service.png) |
 | 4. Click **Review + create**<br>5. Click **Create** | | |
 
 ---
@@ -197,7 +197,7 @@ For globally unique resources, append a random 6-character suffix:
 | Step | Action | Screenshot |
 |------|--------|------------|
 | 1. In the search bar, type **"Virtual networks"** and select it<br>2. Click **+ Create** | | ![Virtual networks](./images/vnet-resource.png) |
-| 3. Fill in the **Basics** tab:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `rg-cc-attendee01`<br>   - **Virtual network name**: `vm-ubuntu-cvm-vnet`<br>   - **Region**: `North Europe` | | ![Virtual network basics](./images/vnet-instance-details.png) |
+| 3. Fill in the **Basics** tab:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `${ATTENDEE_ID}`<br>   - **Virtual network name**: `vm-ubuntu-cvm-vnet`<br>   - **Region**: `southafricanorth` | | ![Virtual network basics](./images/vnet-instance-details.png) |
 | 4. Click on the **IP addresses** tab:<br>   - Keep the default address space or set to `10.10.0.0/24`<br>   - Delete the "default" subnet<br>   - Click **+ Add a subnet**<br>     - **Subnet name**: `vm-subnet`<br>     - **Subnet address range**: `10.10.0.0/26`<br>     - Click **Add**<br>   - Click **+ Add a subnet** again<br>     - **Subnet name**: `AzureBastionSubnet` (must be exactly this name)<br>     - **Subnet address range**: `10.10.0.64/26`<br>     - Click **Add** | | ![Add VM subnet](./images/vnet-add-subnet.png)<br>![Default subnet](./images/vnet-default-subnet.png)<br>![Azure Bastion subnet](./images/vnet-azurebastion-subnet.png)<br>![Virtual network summary](./images/vnet-subnet-snapshot.png) |
 | 5. Click **Review + create**<br>6. Click **Create** | | |
 
@@ -215,7 +215,7 @@ For globally unique resources, append a random 6-character suffix:
 
 | Step | Action | Screenshot |
 |------|--------|------------|
-| 3. Fill in the **Basics** tab:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `rg-cc-attendee01`<br>   - **Virtual machine name**: `vm-ubuntu-cvm`<br>   - **Region**: `North Europe`<br>   - **Availability options**: No infrastructure redundancy required<br>   - **Security type**: **Confidential virtual machines**<br>   - **Image**: Click **See all images**<br>     - Search for **Ubuntu 22.04 Confidential VM**<br>     - Select **Ubuntu Server 22.04 LTS - Confidential VM x64 Gen2**<br>   - **VM architecture**: x64<br>   - **Size**: Click **See all sizes**<br>     - Search for **DC2as_v5**<br>     - Select **Standard_DC2as_v5** (4 vCPUs, 32 GB memory)<br>     - Click **Select** | | ![Virtual machine basics](./images/vm-basics-part1.png)<br>![Find Ubuntu CVM](./images/vm-image-find-ubuntu-cvm.png)<br>![Select Ubuntu CVM](./images/vm-image-select-ubuntu-cvm-gen2.png) |
+| 3. Fill in the **Basics** tab:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `${ATTENDEE_ID}`<br>   - **Virtual machine name**: `vm-ubuntu-cvm`<br>   - **Region**: `southafricanorth`<br>   - **Availability options**: No infrastructure redundancy required<br>   - **Security type**: **Confidential virtual machines**<br>   - **Image**: Click **See all images**<br>     - Search for **Ubuntu 22.04 Confidential VM**<br>     - Select **Ubuntu Server 22.04 LTS - Confidential VM x64 Gen2**<br>   - **VM architecture**: x64<br>   - **Size**: Click **See all sizes**<br>     - Search for **DC2as_v5**<br>     - Select **Standard_DC2as_v5** (4 vCPUs, 32 GB memory)<br>     - Click **Select** | | ![Virtual machine basics](./images/vm-basics-part1.png)<br>![Find Ubuntu CVM](./images/vm-image-find-ubuntu-cvm.png)<br>![Select Ubuntu CVM](./images/vm-image-select-ubuntu-cvm-gen2.png) |
 | 4. Configure **Administrator account**:<br>   - **Authentication type**: SSH public key<br>   - **Username**: `azureuser`<br>   - **SSH public key source**: **Use existing key**<br>   - Open Cloud Shell<br>   - Run this command to get SSH public key:<br>     `az keyvault secret show --name ssh-public-key --vault-name <keyvault name> --query value -o tsv`<br>   - **SSH Public Key**: Copy the output into the `SSH Public Key` field | | ![Use Public key](./images/vm-basics-use-publickey.png) |
 | 5. Configure **Inbound port rules**:<br>   - **Public inbound ports**: None | | |
 
@@ -258,7 +258,7 @@ For globally unique resources, append a random 6-character suffix:
 | Step | Action | Screenshot |
 |------|--------|------------|
 | 1. In the search bar, type **"Bastions"** and select it<br>2. Click **+ Create** | | ![Azure Bastion](./images/azbastion-resource.png) |
-| 3. Fill in the **Basics** tab:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `rg-cc-attendee01`<br>   - **Name**: `bastion-northeurope`<br>   - **Region**: `North Europe`<br>   - **Tier**: Basic<br>   - **Virtual network**: `vm-ubuntu-cvm-vnet`<br>   - **Subnet**: `AzureBastionSubnet` (should be auto-selected)<br>   - **Public IP address**: Create new<br>     - **Public IP address name**: `bastion-northeurope-ip`<br>     - Click **OK** | | ![Create Azure Bastion](./images/azbastion-create.png) |
+| 3. Fill in the **Basics** tab:<br>   - **Subscription**: Select your subscription<br>   - **Resource group**: `${ATTENDEE_ID}`<br>   - **Name**: `bastion-san`<br>   - **Region**: `southafricanorth`<br>   - **Tier**: Basic<br>   - **Virtual network**: `vm-ubuntu-cvm-vnet`<br>   - **Subnet**: `AzureBastionSubnet` (should be auto-selected)<br>   - **Public IP address**: Create new<br>     - **Public IP address name**: `bastion-san-ip`<br>     - Click **OK** | | ![Create Azure Bastion](./images/azbastion-create.png) |
 | 4. Click **Review + create**<br>5. Click **Create**<br>6. **Wait 5-10 minutes** for Bastion deployment (this takes time) | | |
 
 ---
@@ -344,9 +344,9 @@ def process_sensitive_data(customer_data):
 ### Delete Resource Group
 
 1. Navigate to **Resource groups**
-2. Click on `rg-cc-attendee01`
+2. Click on `${ATTENDEE_ID}`
 3. Click **Delete resource group**
-4. Type the resource group name to confirm: `rg-cc-attendee01`
+4. Type the resource group name to confirm: `${ATTENDEE_ID}`
 5. Click **Delete**
 6. Wait for deletion to complete (5-10 minutes)
 
@@ -367,7 +367,7 @@ def process_sensitive_data(customer_data):
 
 ### VM Creation Failed
 
-- **Check**: Quota availability for DC-series VMs in North Europe
+- **Check**: Quota availability for DC-series VMs in South Africa North
 - **Try**: Different region (e.g., West Europe, UK South)
 - **Try**: Smaller VM size (Standard_DC2es_v5)
 
@@ -480,8 +480,12 @@ In this challenge, you successfully implemented and validated Azure Confidential
 3. **Security**: No public IPs are used; all access is through Azure Bastion
 4. **Pricing**: VMs use standard pricing; remember to delete resources after the workshop
 5. **Bastion**: Basic SKU is sufficient for this workshop
-6. **Regions**: North Europe has good availability for DC-series VMs
+6. **Regions**: South Africa North has good availability for DC-series VMs
 7. **Attestation**: The attestation token provides cryptographic proof of VM integrity
 8. **Deployment Time**: Azure Bastion typically takes 5-10 minutes to deploy
 9. **Auto-Created Resources**: NSGs, NICs, and OS Disks are created automatically by the portal
 10. **RBAC Propagation**: Key Vault RBAC permissions may take 2-3 minutes to propagate
+
+---
+
+> **EU original:** this walkthrough is the South Africa edition. The original EU/Northern-Europe sovereign-cloud version lives in the upstream [Microsoft Sovereign Cloud MicroHack](https://github.com/microsoft/MicroHack/tree/main/03-Azure/01-03-Infrastructure/01_Sovereign_Cloud).

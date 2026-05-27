@@ -20,7 +20,7 @@ Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) 
 
 **Configuration Variables:** Throughout this challenge, replace these placeholders with your values:
 - **ATTENDEE_ID**: `labuser-xx` (customize for each participant, e.g., labuser-01, labuser-02)
-- **Region**: North Europe
+- **Region**: South Africa North
 - **Resource Group**: `${ATTENDEE_ID}`
 - **AKS Cluster Name**: `aks-cvmcluster-<unique-suffix>` (Azure will help ensure uniqueness)
 - **Confidential Node Pool Name**: `cvmnodepool`
@@ -30,7 +30,7 @@ Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) 
 
 ## Scenario Context
 
-You are a cloud security engineer at a European healthcare organization that processes sensitive patient data in containerized applications. Your organization has adopted Kubernetes (AKS) for container orchestration but must comply with strict data protection regulations including GDPR and healthcare privacy requirements.
+You are a cloud security engineer at a South African tier-1 retail bank running real-time fraud-detection inference for cardholder transactions. Your team has adopted Kubernetes (AKS) for low-latency model serving but must comply with **POPIA**, **SARB Directive 3/2018**, and the **PCI-DSS** controls the bank inherits from its card schemes — model weights and per-transaction features must never leak to the underlying host, even from a compromised cluster operator.
 
 Your mandate includes:
 
@@ -113,7 +113,7 @@ The AKS deployment patterns and attestation verification workflows have been ada
 3. Fill in the following details:
    - **Subscription**: Select your subscription
    - **Resource group**: `${ATTENDEE_ID}` (e.g., `labuser-01`)
-   - **Region**: **North Europe**
+   - **Region**: **South Africa North**
 
    ![Screenshot placeholder: Create resource group form]
 
@@ -142,7 +142,7 @@ The AKS deployment patterns and attestation verification workflows have been ada
    - **Resource group**: `${ATTENDEE_ID}` (select the one you just created)
    - **Cluster preset configuration**: **Dev/Test**
    - **Kubernetes cluster name**: `aks-cvmcluster-<unique-suffix>` (e.g., `aks-cvmcluster-abc123`)
-   - **Region**: **North Europe**
+   - **Region**: **South Africa North**
    - **Availability zones**: None (or as preferred)
    - **AKS pricing tier**: **Free**
    - **Kubernetes version**: Default (latest stable version)
@@ -633,7 +633,7 @@ In this challenge, you successfully deployed and validated Azure Confidential Co
 ### Node Pool Creation Fails
 
 - Verify that the `AzureLinuxCVMPreview` feature is registered
-- Check that the region (North Europe) supports Confidential VM sizes
+- Check that the region (South Africa North) supports Confidential VM sizes
 - Ensure you have sufficient quota for `Standard_DC2as_v5` VMs
 
 ### Pod Stays in Pending State
@@ -654,3 +654,7 @@ In this challenge, you successfully deployed and validated Azure Confidential Co
 - Check pod logs for errors: `kubectl logs cvm-attestation`
 - Ensure the VM size is a Confidential VM SKU (DC-series)
 
+
+---
+
+> **EU original:** this walkthrough is the South Africa edition. The original EU/Northern-Europe sovereign-cloud version lives in the upstream [Microsoft Sovereign Cloud MicroHack](https://github.com/microsoft/MicroHack/tree/main/03-Azure/01-03-Infrastructure/01_Sovereign_Cloud).
