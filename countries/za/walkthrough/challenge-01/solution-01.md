@@ -121,9 +121,8 @@ The **"Allowed locations"** built-in policy restricts which locations users can 
 
 5. Click **Next** to go to **Parameters**
 6. Under **Allowed locations**, select:
-   - Norway East
-   - Germany North
-   - North Europe
+   - South Africa North
+   - South Africa West
 7. Click **Review + create** and then **Create**
 
 ### Step 3 - option B: Assign the Policy Using Azure CLI
