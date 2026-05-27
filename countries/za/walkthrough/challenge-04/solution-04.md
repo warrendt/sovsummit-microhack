@@ -1,6 +1,6 @@
 # Walkthrough Challenge 4 - Encryption in use with Azure Confidential Compute – VM
 
-[Previous Challenge Solution](../challenge-03/solution-03.md) - **[Home](../../Readme.md)** - [Next Challenge Solution](../challenge-05/solution-05.md)
+[Previous Challenge Solution](../challenge-03/solution-03.md) - **[Home](../../README.md)** - [Next Challenge Solution](../challenge-05/solution-05.md)
 
 **Estimated Duration:** 90-120 minutes
 
@@ -8,7 +8,7 @@
 
 ## Prerequisites
 
-Please ensure that you successfully verified the [General prerequisites](../../Readme.md#general-prerequisites) before continuing with this challenge.
+Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) once (sign-in + env vars).
 
 - Azure subscription with Contributor permissions on your resource group
 - Azure CLI >= 2.54 or access to Azure Portal

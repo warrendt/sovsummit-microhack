@@ -1,6 +1,6 @@
 # Walkthrough Challenge 3 - Encryption in transit: enforcing TLS
 
-[Previous Challenge Solution](../challenge-02/solution-02.md) - **[Home](../../Readme.md)** - [Next Challenge Solution](../challenge-04/solution-04.md)
+[Previous Challenge Solution](../challenge-02/solution-02.md) - **[Home](../../README.md)** - [Next Challenge Solution](../challenge-04/solution-04.md)
 
 **Estimated Duration:** 30 minutes
 
@@ -8,7 +8,7 @@
 
 ## Prerequisites
 
-Please ensure that you successfully verified the [General prerequisites](../../Readme.md#general-prerequisites) before continuing with this challenge.
+Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) once (sign-in + env vars).
 
 - Azure subscription with Contributor permissions on your resource group
 - Azure CLI >= 2.54 or access to Azure Portal
@@ -282,4 +282,4 @@ Confirm that requests use TLS 1.2 or TLS 1.3.
 
 You successfully completed challenge 3! 🚀🚀🚀
 
- **[Home](../../Readme.md)** - [Next Challenge Solution](../challenge-04/solution-04.md)
+ **[Home](../../README.md)** - [Next Challenge Solution](../challenge-04/solution-04.md)

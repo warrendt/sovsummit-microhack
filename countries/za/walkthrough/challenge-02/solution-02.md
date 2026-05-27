@@ -1,6 +1,6 @@
 # Walkthrough Challenge 2 - Encryption at Rest with Customer-Managed Keys (CMKs) in Azure Key Vault
 
-[Previous Challenge Solution](../challenge-01/solution-01.md) - **[Home](../../Readme.md)** - [Next Challenge Solution](../challenge-03/solution-03.md)
+[Previous Challenge Solution](../challenge-01/solution-01.md) - **[Home](../../README.md)** - [Next Challenge Solution](../challenge-03/solution-03.md)
 
 **Estimated Duration:** 30 minutes
 
@@ -8,7 +8,7 @@
 
 ## Prerequisites
 
-Please ensure that you successfully verified the [General prerequisites](../../Readme.md#general-prerequisites) before continuing with this challenge.
+Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) once (sign-in + env vars).
 
 - Azure subscription with Contributor permissions on your resource group
 - Azure CLI >= 2.54 or access to Azure Portal
@@ -269,4 +269,4 @@ If you navigate to the key inside your Key Vault, you should now see a new versi
 
 You successfully completed challenge 2! 🚀🚀🚀
 
- **[Home](../../Readme.md)** - [Next Challenge Solution](../challenge-03/solution-03.md)
+ **[Home](../../README.md)** - [Next Challenge Solution](../challenge-03/solution-03.md)

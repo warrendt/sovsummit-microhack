@@ -1,6 +1,6 @@
 # Challenge 3 — TLS in transit between South Africa regulators, banks & government
 
-[Previous Challenge](challenge-02.md) — **[Home](../Readme.md)** — Next: [Challenge 4](challenge-04.md)
+[Previous Challenge](challenge-02.md) — **[Home](../README.md)** — Next: [Challenge 4](challenge-04.md)
 
 ## The situation
 
@@ -109,7 +109,9 @@ By the end you should be able to:
 - POPIA s.22 — notification of security compromises
 - SARB Directive 3/2018 — cloud computing
 - FSCA Joint Standard 2 of 2024 — cyber resilience
-- {'name': 'Information Regulator (South Africa)', 'url': 'https://inforegulator.org.za/'}, {'name': 'South African Reserve Bank', 'url': 'https://www.resbank.co.za/'}, {'name': 'Financial Sector Conduct Authority', 'url': 'https://www.fsca.co.za/'}
+- [Information Regulator (South Africa)](https://inforegulator.org.za/)
+- [South African Reserve Bank](https://www.resbank.co.za/)
+- [Financial Sector Conduct Authority](https://www.fsca.co.za/)
 
 ## Stretch goals
 

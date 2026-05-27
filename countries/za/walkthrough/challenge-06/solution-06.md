@@ -1,6 +1,6 @@
 # Walkthrough Challenge 6 - Operating a Sovereign Hybrid Cloud with Azure Arc & Azure Local
 
-[Previous Challenge Solution](../challenge-05/solution-05.md) - **[Home](../../Readme.md)**
+[Previous Challenge Solution](../challenge-05/solution-05.md) - **[Home](../../README.md)**
 
 **Estimated Duration:** 60-90 minutes
 
@@ -15,7 +15,7 @@ This challenge uses the Azure Arc Jumpstart environments:
 
 ## Prerequisites
 
-Please ensure that you successfully verified the [General prerequisites](../../Readme.md#general-prerequisites) before continuing with this challenge.
+Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) once (sign-in + env vars).
 
 **Additional requirements for this challenge:**
 
@@ -419,4 +419,4 @@ Before completing this challenge, verify:
 
 You successfully completed Challenge 6! 🚀🚀🚀
 
-**[Home](../../Readme.md)** - [Previous Challenge Solution](../challenge-05/solution-05.md)
+**[Home](../../README.md)** - [Previous Challenge Solution](../challenge-05/solution-05.md)

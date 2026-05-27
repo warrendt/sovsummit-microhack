@@ -1,6 +1,6 @@
 # Challenge 4 — Confidential VMs for South Africa payroll processing
 
-[Previous Challenge](challenge-03.md) — **[Home](../Readme.md)** — Next: [Challenge 5](challenge-05.md)
+[Previous Challenge](challenge-03.md) — **[Home](../README.md)** — Next: [Challenge 5](challenge-05.md)
 
 > **Confidential compute SKUs available in `southafricanorth`:**
 > Standard_DC2as_v5, Standard_EC2as_v5
@@ -104,7 +104,9 @@ any payroll data is decrypted into the VM.
 - POPIA s.26 — prohibition on processing of special personal information
 - POPIA s.55 — Information Officer duties
 - FSCA Joint Standard 2 of 2024 §5 — defence in depth
-- {'name': 'Information Regulator (South Africa)', 'url': 'https://inforegulator.org.za/'}, {'name': 'South African Reserve Bank', 'url': 'https://www.resbank.co.za/'}, {'name': 'Financial Sector Conduct Authority', 'url': 'https://www.fsca.co.za/'}
+- [Information Regulator (South Africa)](https://inforegulator.org.za/)
+- [South African Reserve Bank](https://www.resbank.co.za/)
+- [Financial Sector Conduct Authority](https://www.fsca.co.za/)
 
 ## Stretch goals
 

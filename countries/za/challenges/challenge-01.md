@@ -1,6 +1,6 @@
 # Challenge 1 — Sovereign guardrails for South Africa with Azure Policy & RBAC
 
-**[Home](../Readme.md)** — Next: [Challenge 2](challenge-02.md)
+**[Home](../README.md)** — Next: [Challenge 2](challenge-02.md)
 
 > **Country edition:** Sovereignty Summit South Africa 2026
 > **Primary region:** `southafricanorth` (South Africa North)
@@ -140,7 +140,9 @@ screenshot for your evidence pack.
 - POPIA s.19 — security safeguards (confidentiality, integrity)
 - POPIA s.72 — transfers of personal information outside South Africa
 - POPIA s.14 — records of processing activities
-- {'name': 'Information Regulator (South Africa)', 'url': 'https://inforegulator.org.za/'}, {'name': 'South African Reserve Bank', 'url': 'https://www.resbank.co.za/'}, {'name': 'Financial Sector Conduct Authority', 'url': 'https://www.fsca.co.za/'}
+- [Information Regulator (South Africa)](https://inforegulator.org.za/)
+- [South African Reserve Bank](https://www.resbank.co.za/)
+- [Financial Sector Conduct Authority](https://www.fsca.co.za/)
 
 ## Stretch goals
 

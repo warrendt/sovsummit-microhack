@@ -1,6 +1,6 @@
 # Challenge 5 — Confidential AKS for South Africa fraud-detection inference
 
-[Previous Challenge](challenge-04.md) — **[Home](../Readme.md)** — Next: [Challenge 6](challenge-06.md)
+[Previous Challenge](challenge-04.md) — **[Home](../README.md)** — Next: [Challenge 6](challenge-06.md)
 
 ## The situation
 
@@ -104,7 +104,9 @@ and prove that even a cluster admin cannot read the in-memory features.
 - SARB Directive 3/2018 §6.4 — encryption controls in cloud
 - FSCA Joint Standard 2 of 2024 — cyber resilience
 - PCI DSS v4.0 §3.6.1 — cryptographic key management
-- {'name': 'Information Regulator (South Africa)', 'url': 'https://inforegulator.org.za/'}, {'name': 'South African Reserve Bank', 'url': 'https://www.resbank.co.za/'}, {'name': 'Financial Sector Conduct Authority', 'url': 'https://www.fsca.co.za/'}
+- [Information Regulator (South Africa)](https://inforegulator.org.za/)
+- [South African Reserve Bank](https://www.resbank.co.za/)
+- [Financial Sector Conduct Authority](https://www.fsca.co.za/)
 
 ## Stretch goals
 

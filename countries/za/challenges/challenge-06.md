@@ -1,6 +1,6 @@
 # Challenge 6 — Sovereign hybrid for a South Africa municipality
 
-[Previous Challenge](challenge-05.md) — **[Home](../Readme.md)** — Next: [Finish](finish.md)
+[Previous Challenge](challenge-05.md) — **[Home](../README.md)** — Next: [Finish](finish.md)
 
 ## The situation
 
@@ -130,7 +130,9 @@ Challenges 1–5 now reach the sovereign on-prem estate too.
   on-prem systems!)
 - National Cybersecurity Policy Framework — critical information
   infrastructure
-- {'name': 'Information Regulator (South Africa)', 'url': 'https://inforegulator.org.za/'}, {'name': 'South African Reserve Bank', 'url': 'https://www.resbank.co.za/'}, {'name': 'Financial Sector Conduct Authority', 'url': 'https://www.fsca.co.za/'}
+- [Information Regulator (South Africa)](https://inforegulator.org.za/)
+- [South African Reserve Bank](https://www.resbank.co.za/)
+- [Financial Sector Conduct Authority](https://www.fsca.co.za/)
 
 ## Stretch goals
 

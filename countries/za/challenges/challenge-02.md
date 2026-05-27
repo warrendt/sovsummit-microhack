@@ -1,6 +1,6 @@
 # Challenge 2 — Customer-managed keys for South Africa cardholder data
 
-[Previous Challenge](challenge-01.md) — **[Home](../Readme.md)** — Next: [Challenge 3](challenge-03.md)
+[Previous Challenge](challenge-01.md) — **[Home](../README.md)** — Next: [Challenge 3](challenge-03.md)
 
 > **Primary region:** `southafricanorth`
 > **Key Vault SKU in scope:** `Premium` (HSM-backed)
@@ -114,7 +114,9 @@ You should leave this challenge able to:
 - SARB Directive 3/2018 — cloud computing and offshoring of data
 - FSCA Joint Standard 2 of 2024 — cybersecurity and cyber resilience
 - PCI DSS v4.0 §3.5 — cryptographic key management
-- {'name': 'Information Regulator (South Africa)', 'url': 'https://inforegulator.org.za/'}, {'name': 'South African Reserve Bank', 'url': 'https://www.resbank.co.za/'}, {'name': 'Financial Sector Conduct Authority', 'url': 'https://www.fsca.co.za/'}
+- [Information Regulator (South Africa)](https://inforegulator.org.za/)
+- [South African Reserve Bank](https://www.resbank.co.za/)
+- [Financial Sector Conduct Authority](https://www.fsca.co.za/)
 
 ## Stretch goals
 

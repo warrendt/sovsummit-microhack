@@ -7,7 +7,7 @@
 
 ## Prerequisites
 
-Please ensure that you successfully verified the [General prerequisites](../../Readme.md#general-prerequisites) before continuing with this challenge.
+Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) once (sign-in + env vars).
 
 - Azure Portal access (https://portal.azure.com)
 - Azure subscription with permissions to create VMs, Key Vault, and Attestation Providers

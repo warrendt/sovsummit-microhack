@@ -1,6 +1,6 @@
 # Walkthrough Challenge 1 - Enforce Sovereign Controls with Azure Policy and RBAC
 
-**[Home](../../Readme.md)** - [Next Challenge Solution](../challenge-02/solution-02.md)
+**[Home](../../README.md)** - [Next Challenge Solution](../challenge-02/solution-02.md)
 
 **Estimated Duration:** 45 minutes
 
@@ -8,7 +8,7 @@
 
 ## Prerequisites
 
-Please ensure that you successfully verified the [General prerequisites](../../Readme.md#general-prerequisites) before continuing with this challenge.
+Before you start: complete the [Attendee Prerequisites](../../PREREQUISITES.md) once (sign-in + env vars).
 
 - Azure subscription with Owner or User Access Administrator permissions
 - Azure CLI >= 2.54 or access to Azure Portal

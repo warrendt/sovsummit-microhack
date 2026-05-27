@@ -1,6 +1,6 @@
 # Finish
 
-[Previous Challenge](challenge-06.md) - **[Home](../Readme.md)**
+[Previous Challenge](challenge-06.md) - **[Home](../README.md)**
 
 
 Congratulations! You finished the MicroHack Microsoft Sovereign Cloud. We hope you had the chance to learn about how to implement sovereign cloud controls using Azure native platform capabilities — from policy and RBAC, through encryption at rest, in transit, and in use, to operating a hybrid sovereign environment with Azure Arc and Azure Local.
