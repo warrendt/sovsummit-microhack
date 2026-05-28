@@ -3,7 +3,7 @@
 [Previous Challenge](challenge-03.md) — **[Home](../README.md)** — Next: [Challenge 5](challenge-05.md)
 
 > **Confidential compute SKUs available in `southafricanorth`:**
-> Standard_DC2as_v5, Standard_EC2as_v5
+> Standard_DCas_v5, Standard_ECas_v5
 
 ## The situation
 
