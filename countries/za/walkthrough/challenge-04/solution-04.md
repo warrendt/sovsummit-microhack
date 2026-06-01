@@ -392,9 +392,11 @@ Install prerequisites by running these commands:
 
 ```bash
 sudo apt  install cmake
-
+```
+```bash
 sudo apt-get update -y && sudo apt-get install -y build-essential
-
+```
+```bash
 sudo apt-get install -y libcurl4-openssl-dev libjsoncpp-dev libboost-all-dev nlohmann-json3-dev jq
 ```
 
