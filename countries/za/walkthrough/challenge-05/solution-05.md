@@ -154,7 +154,7 @@ At this point, you should see an AKS cluster in your resource group:
 ### Step 1: Add the Confidential Node Pool
 
 ```bash
-az aks nodepool add --resource-group $RESOURCE_GROUP --cluster-name $AKS_CLUSTER_NAME --name cvmnodepool --node-count 1 --node-vm-size Standard_DC2as_v5
+az aks nodepool add --resource-group $RESOURCE_GROUP --cluster-name $AKS_CLUSTER_NAME --name cvmnodepool --node-count 1 --node-vm-size Standard_DC2as_v6
 ```
 
 At this point, you should see another AKS node pool in your cluster:
