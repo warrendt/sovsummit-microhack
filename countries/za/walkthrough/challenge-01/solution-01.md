@@ -844,7 +844,7 @@ az policy exemption create \
   --description "Temporary exemption for testing purposes" \
   --policy-assignment "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/microsoft.authorization/policyAssignments/${ATTENDEE_ID}-restrict-to-sovereign-regions" \
   --exemption-category "Waiver" \
-  --expires "2026-3-28T23:59:59Z" \
+  --expires "2026-6-28T23:59:59Z" \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
 ```
 
