@@ -49,8 +49,8 @@ and prove that even a cluster admin cannot read the in-memory features.
 ## Success criteria
 
 - [ ] An AKS cluster exists in `southafricanorth` with at
-      least two node pools: one standard (`Standard_D*s_v5`) and one
-      confidential (`Standard_DC*as_v5`).
+      least two node pools: one standard (`Standard_D*s_v6`) and one
+      confidential (`Standard_DC*as_v6`).
 - [ ] The confidential node pool has `enableEncryptionAtHost = true` and
       is tainted so only opted-in workloads land on it.
 - [ ] A sample scoring deployment lands **only** on the confidential
